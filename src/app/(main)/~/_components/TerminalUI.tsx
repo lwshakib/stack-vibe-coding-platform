@@ -39,10 +39,10 @@ export default function TerminalUI() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      <div className="bg-background text-white px-4 py-2 border-b border-gray-700 flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+      <div className="bg-background text-foreground px-4 py-2 border-b border-border flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full bg-destructive"></div>
+        <div className="w-3 h-3 rounded-full bg-accent"></div>
+        <div className="w-3 h-3 rounded-full bg-primary"></div>
         <span className="ml-2 text-sm font-mono">Terminal</span>
       </div>
       <div ref={terminalRef} className="flex-1" />

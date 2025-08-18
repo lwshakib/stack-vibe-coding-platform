@@ -26,7 +26,7 @@ export default function CodeEditor() {
             </div>
           </ResizablePanel>
           <ResizableHandle />
-          <ResizablePanel defaultSize={20} minSize={0} maxSize={40}>
+          <ResizablePanel defaultSize={20} minSize={0} maxSize={50}>
             <div className="h-full min-h-0">
               <TerminalUI />
             </div>

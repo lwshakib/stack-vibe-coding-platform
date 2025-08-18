@@ -1,6 +1,12 @@
 import { trpc } from "@/utils/trpc";
 import { useParams } from "next/navigation";
-import { createContext, useContext, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 interface StackContextType {
   image: any;
@@ -9,6 +15,8 @@ interface StackContextType {
   setCurrentStack: (stack: any) => void;
   stacks: any;
   setStacks: (stacks: any) => void;
+  files: any | undefined;
+  setFiles: Dispatch<SetStateAction<any | undefined>>;
 }
 
 interface StackProviderProps {
@@ -23,6 +31,7 @@ export default function StackProvider({ children }: StackProviderProps) {
   const params = useParams();
   const { mutate: createMessage } = trpc.createMessage.useMutation();
   const [stacks, setStacks] = useState([]);
+  const [files, setFiles] = useState<any | undefined>(undefined);
 
   return (
     <StackContext.Provider
@@ -33,6 +42,8 @@ export default function StackProvider({ children }: StackProviderProps) {
         setCurrentStack,
         stacks,
         setStacks,
+        files,
+        setFiles,
       }}
     >
       {children}

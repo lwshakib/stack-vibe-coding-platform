@@ -11,10 +11,10 @@ import {
   useSearchParams,
 } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import LeftSideView from "../_components/LeftSideView";
 import RightSideView from "../_components/RightSideView";
 import TopView from "../_components/TopView";
-import { toast } from "sonner";
 
 export default function page() {
   const params = useParams();
@@ -34,7 +34,7 @@ export default function page() {
     bootWebContainer,
   } = useSingleStack();
 
-  const { image } = useStack();
+  const { image, files, setFiles } = useStack();
   const utils = trpc.useUtils();
 
   const hasRequestedRef = useRef(false);
@@ -42,10 +42,9 @@ export default function page() {
 
   async function sendMessageFirstTime(message: string) {
     if (!params.id) return;
-    console.log(image);
-    
+
     const template = await getTemplateTrpc({ message });
-    if(!template.files){
+    if (!template.files) {
       toast.error(template.reason);
       return;
     }
@@ -74,10 +73,13 @@ export default function page() {
       role: "user",
     });
 
+    console.log(files);
+    
+
     sendMessage(
       {
         text: message,
-        files: image || null,
+        files,
       },
       {
         body: {
@@ -86,6 +88,7 @@ export default function page() {
         },
       }
     );
+    setFiles(null)
   }
 
   async function initializeFiles() {

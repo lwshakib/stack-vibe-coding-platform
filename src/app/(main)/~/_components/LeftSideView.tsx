@@ -101,7 +101,7 @@ const LeftSideView: React.FC = () => {
           ) : messages && messages.length > 0 ? (
             messages.map((message: any, index: number) =>
               message.role === "user" ? (
-                <UserMessage key={index} content={message.parts[0].text} />
+                <UserMessage key={index} content={message.parts.find((p: any)=> p.type === "text").text} />
               ) : (
                 message.parts.map((part: any, partIndex: number) => {
                   switch (part.type) {

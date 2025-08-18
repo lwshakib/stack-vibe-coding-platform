@@ -135,7 +135,7 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
   const [value, setValue] = useState("");
   const { mutateAsync: createStack } = trpc.createStack.useMutation();
   const { mutate: createMessage } = trpc.createMessage.useMutation();
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
+
   const params = useParams();
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: MIN_HEIGHT,
@@ -144,7 +144,7 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCommandPopover, setShowCommandPopover] = useState(false);
-  const { setImage, setStacks } = useStack();
+  const { setImage, setStacks,files,setFiles } = useStack();
   const router = useRouter();
   const handelClose = (e: any) => {
     e.preventDefault();

@@ -55,8 +55,8 @@ const CustomSearchBar = forwardRef<HTMLDivElement, CustomSearchBarProps>(
         className={cn(
           "flex items-center gap-1 min-w-0 flex-1 border rounded-full transition-colors duration-200",
           isFocused
-            ? "border-blue-500 ring-1 ring-blue-500/20"
-            : "border-border hover:border-muted-foreground",
+            ? "border-ring ring-1 ring-ring/50"
+            : "border-input hover:border-muted-foreground",
           className
         )}
       >
