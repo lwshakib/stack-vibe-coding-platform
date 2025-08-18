@@ -1,6 +1,7 @@
 "use client";
 
 import AiInput from "@/components/ui/ai-input";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { useSingleStack } from "@/context/SingleStackProvider";
 import { trpc } from "@/utils/trpc";
 import { useParams } from "next/navigation";
@@ -70,7 +71,7 @@ const MessageSkeleton: React.FC = () => (
 
 const LeftSideView: React.FC = () => {
   const params = useParams();
-  const { messages, setMessages, onResponseFinish, setOnResponseFinish, stackDetails, sendMessage } =
+  const { messages, setMessages, onResponseFinish, setOnResponseFinish, stackDetails, sendMessage, streamingStatus, stopStreaming } =
     useSingleStack();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { data: previousMessages, isLoading: messagesLoading } =
@@ -105,6 +106,17 @@ const LeftSideView: React.FC = () => {
               ) : (
                 message.parts.map((part: any, partIndex: number) => {
                   switch (part.type) {
+                    case "reasoning":
+                      return (
+                        <Reasoning
+                          key={`${message.id}-${partIndex}`}
+                          className="w-full"
+                          isStreaming={streamingStatus === 'streaming'}
+                        >
+                          <ReasoningTrigger />
+                          <ReasoningContent>{part.text}</ReasoningContent>
+                        </Reasoning>
+                      );
                     case "text":
                       return (
                         <AssistantMessage
@@ -128,7 +140,7 @@ const LeftSideView: React.FC = () => {
         </div>
       </div>
       <div className="flex-shrink-0 px-4">
-        <AiInput stackDetails={stackDetails} sendMessage={sendMessage} />
+        <AiInput stackDetails={stackDetails} sendMessage={sendMessage} stopStreaming={stopStreaming} streamingStatus={streamingStatus} />
       </div>
     </div>
   );

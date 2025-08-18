@@ -34,7 +34,7 @@ export default function page() {
     bootWebContainer,
   } = useSingleStack();
 
-  const { image, files, setFiles } = useStack();
+  const { files, setFiles } = useStack();
   const utils = trpc.useUtils();
 
   const hasRequestedRef = useRef(false);
@@ -74,7 +74,6 @@ export default function page() {
     });
 
     console.log(files);
-    
 
     sendMessage(
       {
@@ -88,7 +87,7 @@ export default function page() {
         },
       }
     );
-    setFiles(null)
+    setFiles(null);
   }
 
   async function initializeFiles() {

@@ -1,3 +1,4 @@
+import { getGeminiModel } from "@/llm/model";
 import {
   expoTemplate,
   nextJSShadcnDummyTemplate,
@@ -5,6 +6,7 @@ import {
   reactJSShadcnDummyTemplate,
 } from "@/llm/templates";
 import { templateToTree } from "@/utils/converter";
+import { generateText } from "ai";
 import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { guessTheTemplate } from "../../llm/template-guess";
@@ -41,9 +43,9 @@ export const appRouter = router({
         clerkId: true,
         createdAt: true,
       },
-      orderBy:{
-        createdAt: 'desc'
-      }
+      orderBy: {
+        createdAt: "desc",
+      },
     });
     return {
       stacks,
@@ -167,54 +169,71 @@ export const appRouter = router({
         message: "Stack updated successfully",
       };
     }),
-    createMessage: protectedProcedure
-      .input(
-        z.object({
-          stackId: z.string(),
-          parts: z.any(),
-          role: z.string(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const { userId } = ctx.auth;
-        // Update the stack with provided fields
-        const updatedMessage = await prisma.message.create({
-          data: {
-            parts: input.parts,
-            role: input.role,
-            stackId: input.stackId,
-            clerkId: userId,
-          }
-        });
+  createMessage: protectedProcedure
+    .input(
+      z.object({
+        stackId: z.string(),
+        parts: z.any(),
+        role: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx.auth;
+      // Update the stack with provided fields
+      const updatedMessage = await prisma.message.create({
+        data: {
+          parts: input.parts,
+          role: input.role,
+          stackId: input.stackId,
+          clerkId: userId,
+        },
+      });
 
-        return {
-          data: updatedMessage,
-          message: "Message created successfully",
-        };
-      }),
+      return {
+        data: updatedMessage,
+        message: "Message created successfully",
+      };
+    }),
 
+  getMessages: protectedProcedure
+    .input(
+      z.object({
+        stackId: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { userId } = ctx.auth;
+      // Update the stack with provided fields
+      const updatedMessage = await prisma.message.findMany({
+        where: {
+          stackId: input.stackId,
+          clerkId: userId,
+        },
+      });
 
-      getMessages: protectedProcedure
-      .input(
-        z.object({
-          stackId: z.string(),
-        })
-      )
-      .query(async ({ ctx, input }) => {
-        const { userId } = ctx.auth;
-        // Update the stack with provided fields
-        const updatedMessage = await prisma.message.findMany({
-          where: {
-            stackId: input.stackId,
-            clerkId: userId,
-          }
-        });
+      return {
+        data: updatedMessage,
+        message: "Messages fetched successfully",
+      };
+    }),
 
-        return {
-          data: updatedMessage,
-          message: "Messages fetched successfully",
-        };
-      }),
+  enhancePrompt: protectedProcedure
+    .input(
+      z.object({
+        prompt: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const response = await generateText({
+        model: getGeminiModel(),
+        system:"You are an expert prompt engineer. Improve the user's prompt for a coding assistant so it is clear, specific, and actionable. Preserve the original intent, add necessary details or constraints if implied, and remove redundancy. Output only the improved prompt without any explanations, preface, quotes, or code fences.",
+        prompt: input.prompt,
+      });
+
+      return {
+        enhanced: response.text.trim()
+      };
+    }),
 });
 
 // export type definition of API

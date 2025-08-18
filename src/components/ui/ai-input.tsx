@@ -1,7 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Command, Paperclip, Plus, Send, Sparkles } from "lucide-react";
+import {
+  Command,
+  File as FileIcon,
+  Paperclip,
+  Plus,
+  Send,
+  Sparkles,
+  Square,
+} from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -20,11 +28,10 @@ import {
 } from "@/components/ui/tooltip";
 import { useStack } from "@/context/StackProvider";
 import { cn } from "@/lib/utils";
-import { trpc } from "@/utils/trpc";
-import { useParams, useRouter } from "next/navigation";
-import { useSingleStack } from "@/context/SingleStackProvider";
 import { treeToTemplate } from "@/utils/converter";
 import { filterIgnoredFiles } from "@/utils/helpers";
+import { trpc } from "@/utils/trpc";
+import { useParams, useRouter } from "next/navigation";
 
 interface UseAutoResizeTextareaProps {
   minHeight: number;
@@ -131,20 +138,34 @@ const AnimatedPlaceholder = () => (
   </motion.p>
 );
 
-export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any, sendMessage?: any}) {
+export default function AiInput({
+  stackDetails,
+  sendMessage,
+  stopStreaming,
+  streamingStatus,
+}: {
+  stackDetails?: any;
+  sendMessage?: any;
+  stopStreaming?: any;
+  streamingStatus?: any;
+}) {
   const [value, setValue] = useState("");
   const { mutateAsync: createStack } = trpc.createStack.useMutation();
   const { mutate: createMessage } = trpc.createMessage.useMutation();
+  const { mutateAsync: enhancePrompt, isPending: isEnhancing } =
+    trpc.enhancePrompt.useMutation();
 
   const params = useParams();
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: MIN_HEIGHT,
     maxHeight: MAX_HEIGHT,
   });
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [filePreviews, setFilePreviews] = useState<
+    Array<{ url?: string; name: string; type: string }>
+  >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCommandPopover, setShowCommandPopover] = useState(false);
-  const { setImage, setStacks,files,setFiles } = useStack();
+  const { setStacks, files, setFiles } = useStack();
   const router = useRouter();
   const handelClose = (e: any) => {
     e.preventDefault();
@@ -152,39 +173,63 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
     if (fileInputRef.current) {
       fileInputRef.current.value = ""; // Reset file input
     }
-    setImagePreview(null); // Use null instead of empty string
+    // Clear selected files and revoke previews
+    setFilePreviews((prev) => {
+      prev.forEach((p) => {
+        if (p.url && p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+      });
+      return [];
+    });
+    setFiles(undefined);
   };
 
   const handelChange = (e: any) => {
-    const file = e.target.files ? e.target.files[0] : null;
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-      setImage(file); // Store the file in StackProvider
-      setFiles(e.target.files);
-    }
+    const incomingList: FileList | null = e.target.files ?? null;
+    if (!incomingList || incomingList.length === 0) return;
+
+    const existingFiles: File[] = Array.isArray(files) ? (files as File[]) : [];
+    const incomingFiles = Array.from(incomingList);
+    const merged = [...existingFiles, ...incomingFiles];
+    const limited = merged.slice(0, 3);
+
+    const previews = limited.map((f) =>
+      f.type?.startsWith("image/")
+        ? { url: URL.createObjectURL(f), name: f.name, type: f.type }
+        : { name: f.name, type: f.type }
+    );
+
+    setFilePreviews((prev) => {
+      prev.forEach((p) => {
+        if (p.url && p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+      });
+      return previews;
+    });
+
+    setFiles(limited as any);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async () => {
     // Default function - you can customize this
     console.log("Submitting:", value);
-    if (imagePreview) {
-      console.log("With image:", imagePreview);
-    }
     setValue("");
     adjustHeight(true);
     if (!params.id) {
       const { stack } = await createStack();
       setStacks((prev: any) => [...prev, stack]);
       router.push(`/~/${stack.id}?message=${encodeURIComponent(value)}`);
-    }else{
-      const filteredFiles = treeToTemplate(filterIgnoredFiles(stackDetails?.stack?.files));
-      sendMessage({
-        text: value,
-        files,
+    } else {
+      const filteredFiles = treeToTemplate(
+        filterIgnoredFiles(stackDetails?.stack?.files)
+      );
+      sendMessage(
+        {
+          text: value,
+          files,
         },
         {
           body: {
-            projectFiles: filteredFiles
+            projectFiles: filteredFiles,
           },
         }
       );
@@ -196,14 +241,28 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
     }
   };
 
-  useEffect(() => {
-    const url = imagePreview;
-    return () => {
-      if (typeof url === "string" && url.startsWith("blob:")) {
-        URL.revokeObjectURL(url);
+  const handleEnhance = async () => {
+    if (value.trim().length === 0 || isEnhancing) return;
+    try {
+      const res = await enhancePrompt({ prompt: value });
+      if (res?.enhanced) {
+        setValue(res.enhanced);
+        adjustHeight();
+        textareaRef.current?.focus();
       }
+    } catch (error) {
+      console.error("Enhance prompt failed", error);
+    }
+  };
+
+  useEffect(() => {
+    const current = filePreviews;
+    return () => {
+      current.forEach((p) => {
+        if (p.url && p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+      });
     };
-  }, [imagePreview]);
+  }, [filePreviews]);
 
   // Show popover if input starts with '/'
   useEffect(() => {
@@ -226,21 +285,64 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
     <div className="w-full py-4">
       <div className="relative max-w-xl border rounded-[22px] bg-background/50 border-border p-1 w-full mx-auto">
         <div className="relative rounded-2xl border border-border bg-neutral-800/5 flex flex-col">
-          {imagePreview && (
+          {filePreviews.length > 0 && (
             <div className="relative m-2">
-              <div className="relative w-48 h-48 bg-black/5 dark:bg-white/5 rounded-xl overflow-hidden">
-                <Image
-                  className="object-cover"
-                  src={imagePreview || "/picture1.jpeg"}
-                  alt="selected image"
-                  fill
-                  sizes="(max-width: 768px) 200px, 250px"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                {filePreviews.map((preview, idx) => (
+                  <div
+                    key={idx}
+                    className="relative w-24 h-24 bg-black/5 dark:bg-white/5 rounded-lg overflow-hidden flex items-center justify-center"
+                  >
+                    {preview.url ? (
+                      <Image
+                        className="object-cover"
+                        src={preview.url}
+                        alt={preview.name}
+                        fill
+                        sizes="96px"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-2 text-xs text-muted-foreground">
+                        <FileIcon className="w-4 h-4 mb-1" />
+                        <span className="line-clamp-2 text-center break-all">
+                          {preview.name}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setFilePreviews((prev) => {
+                          const next = [...prev];
+                          const removed = next.splice(idx, 1)[0];
+                          if (removed?.url && removed.url.startsWith("blob:")) {
+                            URL.revokeObjectURL(removed.url);
+                          }
+                          return next;
+                        });
+                        setFiles((current: any) => {
+                          const arr: File[] = Array.isArray(current)
+                            ? current
+                            : [];
+                          const next = arr.filter((_, i) => i !== idx);
+                          return next.length > 0 ? (next as any) : undefined;
+                        });
+                      }}
+                      className="bg-secondary text-secondary-foreground absolute top-1 right-1 shadow-3xl rounded-full rotate-45 p-1"
+                      aria-label="Remove file"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end mt-2">
                 <button
                   onClick={handelClose}
-                  className="bg-secondary text-secondary-foreground absolute top-2 right-2 shadow-3xl rounded-full rotate-45 p-1"
+                  className="text-xs px-2 py-1 rounded-md bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                 >
-                  <Plus className="w-4 h-4" />
+                  Clear all
                 </button>
               </div>
             </div>
@@ -326,7 +428,7 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
               <label
                 className={cn(
                   "cursor-pointer relative rounded-full p-2 bg-black/5 dark:bg-white/5",
-                  imagePreview
+                  filePreviews.length > 0
                     ? "bg-destructive/15 border border-destructive text-destructive"
                     : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                 )}
@@ -335,13 +437,14 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
                   type="file"
                   ref={fileInputRef}
                   onChange={handelChange}
-                  accept="image/*"
+                  accept="*/*"
+                  multiple
                   className="hidden"
                 />
                 <Paperclip
                   className={cn(
                     "w-4 h-4 text-muted-foreground hover:text-foreground transition-colors",
-                    imagePreview && "text-destructive"
+                    filePreviews.length > 0 && "text-destructive"
                   )}
                 />
               </label>
@@ -368,10 +471,11 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      disabled={value.trim().length === 0}
+                      disabled={value.trim().length === 0 || isEnhancing}
+                      onClick={handleEnhance}
                       className={cn(
                         "rounded-full p-2 transition-colors",
-                        value.trim().length === 0
+                        value.trim().length === 0 || isEnhancing
                           ? "bg-black/5 dark:bg-white/5 text-muted-foreground/50 cursor-not-allowed"
                           : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                       )}
@@ -386,18 +490,28 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
               </TooltipProvider>
               <button
                 type="button"
-                disabled={value.trim().length === 0}
-                onClick={handleSubmit}
+                onClick={
+                  streamingStatus === "streaming" ? stopStreaming : handleSubmit
+                }
+                disabled={
+                  streamingStatus !== "streaming" && value.trim().length === 0
+                }
                 className={cn(
                   "rounded-full p-2 transition-colors",
-                  value.trim().length === 0
+                  streamingStatus === "streaming"
+                    ? "bg-destructive/15 text-destructive"
+                    : value.trim().length === 0
                     ? "bg-black/5 dark:bg-white/5 text-muted-foreground/50 cursor-not-allowed"
                     : value
                     ? "bg-destructive/15 text-destructive"
                     : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Send className="w-4 h-4" />
+                {streamingStatus === "streaming" ? (
+                  <Square className="w-4 h-4" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>

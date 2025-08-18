@@ -2,7 +2,7 @@
 import { trpc } from "@/utils/trpc";
 import { useChat } from "@ai-sdk/react";
 import { WebContainer, WebContainerProcess } from "@webcontainer/api";
-import { DefaultChatTransport } from "ai";
+import { ChatStatus, DefaultChatTransport } from "ai";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 // Ensure only a single WebContainer boot happens at a time across this module
@@ -41,6 +41,8 @@ interface SingleStackContextType {
   bootWebContainer: () => Promise<WebContainer>;
   registerTerminal: (write: (text: string) => void) => void;
   unregisterTerminal: () => void;
+  streamingStatus: ChatStatus;
+  stopStreaming: () => void;
 }
 
 interface SingleStackProviderProps {
@@ -92,7 +94,7 @@ export default function SingleStackProvider({
     terminalWriteRef.current = null;
   }
 
-  const { messages, sendMessage, setMessages } = useChat({
+  const { messages, sendMessage, setMessages, status: streamingStatus, stop: stopStreaming } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -337,6 +339,8 @@ export default function SingleStackProvider({
         bootWebContainer,
         registerTerminal,
         unregisterTerminal,
+        streamingStatus,
+        stopStreaming,
       }}
     >
       {children}
