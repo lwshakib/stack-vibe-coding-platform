@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -8,7 +9,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useStack } from "@/context/StackProvider";
 import { trpc } from "@/utils/trpc";
 import { Code2, Menu, Plus, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -31,8 +31,7 @@ export default function Sidebar() {
 
   const handleCreateStack = async () => {
     try {
-      const { stack } = await createStack();
-      router.push(`/~/${stack.id}`);
+      router.push(`/`);
     } catch (error) {
       console.error("Failed to create stack:", error);
     }
@@ -74,7 +73,10 @@ export default function Sidebar() {
           <Menu className="w-4 h-4" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+      <SheetContent
+        side="right"
+        className="w-[400px] sm:w-[540px] flex flex-col"
+      >
         <SheetHeader className="pb-6 border-b">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-primary/10 rounded-lg">
@@ -92,87 +94,90 @@ export default function Sidebar() {
             </div>
           </div>
         </SheetHeader>
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full pr-2">
+            <div className="mt-6 space-y-6 mx-2 pb-4">
+              {/* Create New Stack Button */}
+              <Button
+                className="w-full justify-start cursor-pointer"
+                size="lg"
+                variant="outline"
+                onClick={handleCreateStack}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create New Stack
+              </Button>
 
-        <div className="mt-6 space-y-6 mx-2">
-          {/* Create New Stack Button */}
-          <Button
-            className="w-full justify-start cursor-pointer"
-            size="lg"
-            variant="outline"
-            onClick={handleCreateStack}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Stack
-          </Button>
-
-          {/* Stacks Section */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Previous Stacks</h3>
-            <div className="space-y-2">
-              {stacksData?.stacks && stacksData.stacks.length > 0 ? (
-                stacksData.stacks.map((stack) => (
-                  <div
-                    key={stack.id}
-                    className={`relative flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer overflow-hidden ${
-                      stack.id === currentStackId
-                        ? "bg-primary/20 border border-primary/30"
-                        : "bg-muted/50 hover:bg-muted/70"
-                    }`}
-                    onClick={() => handleStackClick(stack.id)}
-                  >
-                    {deletingStackId === stack.id && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-                    )}
-                    <div className="flex items-center space-x-3">
-                      <Code2
-                        className={`w-4 h-4 ${
+              {/* Stacks Section */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">Previous Stacks</h3>
+                <div className="space-y-2">
+                  {stacksData?.stacks && stacksData.stacks.length > 0 ? (
+                    stacksData.stacks.map((stack) => (
+                      <div
+                        key={stack.id}
+                        className={`relative flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer overflow-hidden ${
                           stack.id === currentStackId
-                            ? "text-primary"
-                            : "text-muted-foreground"
+                            ? "bg-primary/20 border border-primary/30"
+                            : "bg-muted/50 hover:bg-muted/70"
                         }`}
-                      />
-                      <p
-                        className={`font-medium ${
-                          stack.id === currentStackId
-                            ? "text-primary"
-                            : "text-foreground"
-                        }`}
+                        onClick={() => handleStackClick(stack.id)}
                       >
-                        {stack.name}
+                        {deletingStackId === stack.id && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                        )}
+                        <div className="flex items-center space-x-3">
+                          <Code2
+                            className={`w-4 h-4 ${
+                              stack.id === currentStackId
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          />
+                          <p
+                            className={`font-medium ${
+                              stack.id === currentStackId
+                                ? "text-primary"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {stack.name}
+                          </p>
+                          {stack.id === currentStackId && (
+                            <div className="w-2 h-2 bg-primary rounded-full" />
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deletingStackId === stack.id}
+                          className={`${
+                            deletingStackId === stack.id
+                              ? "text-muted-foreground cursor-not-allowed"
+                              : "text-destructive hover:text-destructive hover:bg-destructive/10"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteStack(stack.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Code2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No stacks yet</p>
+                      <p className="text-sm">
+                        Create your first stack to get started
                       </p>
-                      {stack.id === currentStackId && (
-                        <div className="w-2 h-2 bg-primary rounded-full" />
-                      )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={deletingStackId === stack.id}
-                      className={`${
-                        deletingStackId === stack.id
-                          ? "text-muted-foreground cursor-not-allowed"
-                          : "text-destructive hover:text-destructive hover:bg-destructive/10"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteStack(stack.id);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Code2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>No stacks yet</p>
-                  <p className="text-sm">
-                    Create your first stack to get started
-                  </p>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </SheetContent>
     </Sheet>

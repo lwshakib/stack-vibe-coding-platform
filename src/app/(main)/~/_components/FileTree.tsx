@@ -23,32 +23,27 @@ export type FileStructureData = {
 
 // Utility function to convert file structure data to TreeNode format
 export function convertFileStructureToTree(
-  files: FileStructureData
+  files: FileStructureData,
+  basePath = ""
 ): TreeNode[] {
   const result: TreeNode[] = [];
 
   for (const [name, item] of Object.entries(files)) {
+    const currentPath = basePath ? `${basePath}/${name}` : name;
+
     if (item.file) {
       // This is a file
       result.push({
-        id: name,
+        id: currentPath,
         label: name,
         data: { type: "file", contents: item.file.contents },
       });
     } else if (item.directory) {
       // This is a directory - recursively process its contents
-      const children = convertFileStructureToTree(item.directory);
-
-      // Update the IDs to include the parent path
-      children.forEach((child) => {
-        child.id = `${name}/${child.id}`;
-        if (child.data?.path) {
-          child.data.path = `${name}/${child.data.path}`;
-        }
-      });
+      const children = convertFileStructureToTree(item.directory, currentPath);
 
       result.push({
-        id: name,
+        id: currentPath,
         label: name,
         children: children,
       });

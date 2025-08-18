@@ -1,4 +1,6 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useSingleStack } from "@/context/SingleStackProvider";
 import {
   CheckCircle,
@@ -25,6 +27,7 @@ interface WebPreviewHeaderProps {
   setResponsiveMode: (mode: ResponsiveMode) => void;
   webPreviewUrl: string | null;
   webContainerPort: number | null;
+  onRefresh: () => void;
 }
 
 function WebPreviewHeader({
@@ -34,10 +37,10 @@ function WebPreviewHeader({
   setResponsiveMode,
   webPreviewUrl,
   webContainerPort,
+  onRefresh,
 }: WebPreviewHeaderProps) {
   const handleRefresh = () => {
-    // Refresh the preview
-    console.log("Refreshing preview...");
+    onRefresh();
   };
 
   const handleUrlChange = (value: string) => {
@@ -146,6 +149,11 @@ export default function WebPreview() {
   const [url, setUrl] = useState("/");
   const [responsiveMode, setResponsiveMode] =
     useState<ResponsiveMode>("desktop");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const handleRefresh = () => {
+    setReloadKey((prev) => prev + 1);
+  };
 
   // Determine the current WebContainer state based on actual hooks
   const getCurrentWebContainerState = (): WebContainerState => {
@@ -295,14 +303,11 @@ export default function WebPreview() {
               {getStateDescription(webContainerState)}
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full bg-background rounded-full h-2 mb-4">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${getProgressValue(webContainerState)}%` }}
-              />
-            </div>
-
+            {/* Progress */}
+            <Progress
+              value={getProgressValue(webContainerState)}
+              className="mb-2"
+            />
             <div className="text-xs text-muted-foreground">
               {getProgressValue(webContainerState)}% Complete
             </div>
@@ -316,13 +321,55 @@ export default function WebPreview() {
               </div>
             )}
 
-            {/* Show current state details */}
-            <div className="mt-4 p-3 bg-background rounded-md border">
-              <div className="text-xs text-muted-foreground space-y-1">
-                <div>Booting: {isBootingWebContainer ? "Yes" : "No"}</div>
-                <div>Installing: {isInstallingDependencies ? "Yes" : "No"}</div>
-                <div>Dev Server: {isDevServerRunning ? "Yes" : "No"}</div>
-                <div>Port: {webContainerPort || "Not set"}</div>
+            {/* Current status */}
+            <div className="mt-4 w-full rounded-md border bg-background p-3">
+              <div className="mb-2 text-xs font-medium text-muted-foreground">
+                Current status
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Booting</span>
+                  <Badge
+                    variant={isBootingWebContainer ? "secondary" : "outline"}
+                    className={
+                      isBootingWebContainer ? "" : "text-muted-foreground"
+                    }
+                  >
+                    {isBootingWebContainer ? "Yes" : "No"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    Installing
+                  </span>
+                  <Badge
+                    variant={isInstallingDependencies ? "secondary" : "outline"}
+                    className={
+                      isInstallingDependencies ? "" : "text-muted-foreground"
+                    }
+                  >
+                    {isInstallingDependencies ? "Yes" : "No"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    Dev Server
+                  </span>
+                  <Badge
+                    variant={isDevServerRunning ? "secondary" : "outline"}
+                    className={
+                      isDevServerRunning ? "" : "text-muted-foreground"
+                    }
+                  >
+                    {isDevServerRunning ? "Running" : "Stopped"}
+                  </Badge>
+                </div>
+                <div className="col-span-2 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Port</span>
+                  <Badge variant="outline">
+                    {webContainerPort || "Not set"}
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>
@@ -340,9 +387,11 @@ export default function WebPreview() {
         setResponsiveMode={setResponsiveMode}
         webPreviewUrl={webPreviewUrl}
         webContainerPort={webContainerPort}
+        onRefresh={handleRefresh}
       />
       <div className={getContainerStyles()}>
         <iframe
+          key={reloadKey}
           src={getFullUrl(url)}
           className={getIframeStyles()}
           title="Web Preview"

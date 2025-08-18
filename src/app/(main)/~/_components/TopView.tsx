@@ -72,37 +72,7 @@ export default function TopView() {
           >
             <Github className="w-3 h-3" />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm" className="hidden sm:flex">
-                <div className="relative mr-2">
-                  <Grid3X3 className="w-3 h-3" />
-                  <Plus className="w-2 h-2 absolute -bottom-1 -left-1" />
-                </div>
-                <span className="text-xs font-medium">Integrations</span>
-                <ChevronDown className="w-3 h-3 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>API Connections</DropdownMenuItem>
-              <DropdownMenuItem>Webhooks</DropdownMenuItem>
-              <DropdownMenuItem>Third-party Services</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="hidden md:flex">
-                <span className="text-xs font-medium">Publish</span>
-                <ChevronDown className="w-3 h-3 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>Deploy to Production</DropdownMenuItem>
-              <DropdownMenuItem>Deploy to Staging</DropdownMenuItem>
-              <DropdownMenuItem>Preview Build</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <ThemeToggle />
           <Sidebar />

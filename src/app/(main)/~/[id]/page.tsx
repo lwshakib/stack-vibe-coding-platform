@@ -42,6 +42,8 @@ export default function page() {
 
   async function sendMessageFirstTime(message: string) {
     if (!params.id) return;
+    console.log(image);
+    
     const template = await getTemplateTrpc({ message });
     if(!template.files){
       toast.error(template.reason);

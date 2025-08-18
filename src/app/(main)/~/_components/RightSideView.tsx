@@ -14,7 +14,16 @@ const RightSideView: React.FC = () => {
       <div className="m-4 border border-border w-full h-full rounded-xl flex flex-col bg-background shadow-sm">
         <CustomTabs activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="flex-1">
-          {activeTab === "code-editor" ? <CodeEditor /> : <WebPreview />}
+          <div
+            className={activeTab !== "code-editor" ? "hidden h-full" : "h-full"}
+          >
+            <CodeEditor />
+          </div>
+          <div
+            className={activeTab === "code-editor" ? "hidden h-full" : "h-full"}
+          >
+            <WebPreview />
+          </div>
         </div>
       </div>
     </div>

@@ -134,7 +134,8 @@ const AnimatedPlaceholder = () => (
 export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any, sendMessage?: any}) {
   const [value, setValue] = useState("");
   const { mutateAsync: createStack } = trpc.createStack.useMutation();
-  const { mutateAsync: createMessage } = trpc.createMessage.useMutation();
+  const { mutate: createMessage } = trpc.createMessage.useMutation();
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
   const params = useParams();
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: MIN_HEIGHT,
@@ -159,6 +160,7 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
     if (file) {
       setImagePreview(URL.createObjectURL(file));
       setImage(file); // Store the file in StackProvider
+      setFiles(e.target.files);
     }
   };
 
@@ -178,7 +180,7 @@ export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any
       const filteredFiles = treeToTemplate(filterIgnoredFiles(stackDetails?.stack?.files));
       sendMessage({
         text: value,
-        files: imagePreview || null,
+        files,
         },
         {
           body: {

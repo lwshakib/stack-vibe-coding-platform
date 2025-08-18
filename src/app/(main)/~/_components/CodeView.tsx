@@ -32,10 +32,13 @@ function FileHeader({ file, onCopy, copied }: FileHeaderProps) {
     <div className="flex items-center justify-between px-3 py-1.5 border-b">
       <div className="flex items-center gap-2 min-w-0">
         <Badge variant="outline" className="text-xs">
-          {getFileType(file.label)}
+          {getFileType(file.id ?? file.label)}
         </Badge>
-        <span className="text-xs text-muted-foreground truncate">
-          {file.label}
+        <span
+          className="text-xs text-muted-foreground truncate"
+          title={file.id ?? file.label}
+        >
+          {file.id ?? file.label}
         </span>
       </div>
       <div className="flex gap-1">
@@ -65,8 +68,50 @@ export default function CodeView({
   const { selectedFile } = useSingleStack();
 
   const handleCopy = () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const textToCopy = selectedFile?.data?.contents ?? "";
+    const doSet = () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard
+        .writeText(textToCopy)
+        .then(doSet)
+        .catch(() => {
+          try {
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            doSet();
+          } catch {
+            // ignore
+          }
+        });
+    } else {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = textToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        doSet();
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  // Debounced editor change handler
+  const changeDebounceRef = React.useRef<number | undefined>(undefined);
+  const handleEditorChange = (value?: string) => {
+    if (changeDebounceRef.current) {
+      window.clearTimeout(changeDebounceRef.current);
+    }
+    changeDebounceRef.current = window.setTimeout(() => {}, 1000);
   };
 
   if (!selectedFile) {
@@ -128,28 +173,26 @@ export default function CodeView({
         <Editor
           loading={<CodeEditorSkeleton />}
           language={
-            selectedFile?.label.endsWith(".tsx")
+            selectedFile?.id?.endsWith(".tsx")
               ? "typescript"
-              : selectedFile?.label.endsWith(".ts")
+              : selectedFile?.id?.endsWith(".ts")
               ? "typescript"
-              : selectedFile?.label.endsWith(".js")
+              : selectedFile?.id?.endsWith(".js")
               ? "javascript"
-              : selectedFile?.label.endsWith(".jsx")
+              : selectedFile?.id?.endsWith(".jsx")
               ? "javascript"
-              : selectedFile?.label.endsWith(".md")
+              : selectedFile?.id?.endsWith(".md")
               ? "markdown"
-              : selectedFile?.label.endsWith(".css")
+              : selectedFile?.id?.endsWith(".css")
               ? "css"
-              : selectedFile?.label.endsWith(".json")
+              : selectedFile?.id?.endsWith(".json")
               ? "json"
               : "text"
           }
           value={selectedFile?.data?.contents || ""}
           theme={resolvedTheme === "dark" ? "pure-black" : "pure-white"}
           onMount={handleEditorDidMount}
-          onChange={(e)=>{
-            console.log(e)
-          }}
+          onChange={handleEditorChange}
           options={{
             minimap: { enabled: false },
             fontSize: 12, // Smaller font on mobile

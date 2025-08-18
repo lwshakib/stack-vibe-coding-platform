@@ -39,6 +39,8 @@ interface SingleStackContextType {
   setOnResponseFinish: (value: boolean) => void;
   mountFiles: (files: any, webContainerInstance: WebContainer) => Promise<void>;
   bootWebContainer: () => Promise<WebContainer>;
+  registerTerminal: (write: (text: string) => void) => void;
+  unregisterTerminal: () => void;
 }
 
 interface SingleStackProviderProps {
@@ -80,6 +82,15 @@ export default function SingleStackProvider({
   const [onResponseFinish, setOnResponseFinish] = useState(false);
   const devServerProcessRef = useRef<WebContainerProcess | null>(null);
   const runningProcessesRef = useRef<WebContainerProcess[]>([]);
+  const terminalWriteRef = useRef<((text: string) => void) | null>(null);
+
+  function registerTerminal(write: (text: string) => void) {
+    terminalWriteRef.current = write;
+  }
+
+  function unregisterTerminal() {
+    terminalWriteRef.current = null;
+  }
 
   const { messages, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -103,11 +114,13 @@ export default function SingleStackProvider({
       if (!webContainerInstance) {
         setWebContainerInstance(webContainerSingleton);
       }
+      terminalWriteRef.current?.("Using existing WebContainer instance\r\n");
       return webContainerSingleton;
     }
 
     // Fallback to local state if already set
     if (webContainerInstance) {
+      terminalWriteRef.current?.("Using existing WebContainer instance\r\n");
       return webContainerInstance;
     }
 
@@ -123,10 +136,12 @@ export default function SingleStackProvider({
     try {
       setIsBootingWebContainer(true);
       console.log("Booting web container", stackId);
+      terminalWriteRef.current?.("Booting WebContainer...\r\n");
       webContainerBootPromise = WebContainer.boot();
       const instance = await webContainerBootPromise;
       webContainerSingleton = instance;
       setWebContainerInstance(webContainerSingleton);
+      terminalWriteRef.current?.("WebContainer ready.\r\n");
       return webContainerSingleton;
     } finally {
       setIsBootingWebContainer(false);
@@ -152,6 +167,19 @@ export default function SingleStackProvider({
     devServerProcessRef.current = devProcess;
     setIsDevServerRunning(true);
 
+    // Pipe dev server output to terminal
+    try {
+      devProcess.output.pipeTo(
+        new WritableStream<string>({
+          write(data: string) {
+            terminalWriteRef.current?.(data.replace(/\n/g, "\r\n"));
+          },
+        })
+      );
+    } catch {
+      // ignore
+    }
+
     // Clear ref when process exits
     devProcess.exit
       .then(() => {
@@ -159,6 +187,7 @@ export default function SingleStackProvider({
           devServerProcessRef.current = null;
         }
         setIsDevServerRunning(false);
+        terminalWriteRef.current?.("Dev server stopped.\r\n");
       })
       .catch(() => {
         // Ignore
@@ -168,6 +197,9 @@ export default function SingleStackProvider({
       setWebContainerPort(port);
       setWebPreviewUrl(url);
       console.log(url);
+      terminalWriteRef.current?.(
+        `Dev server ready on port ${port}. Preview: ${url}\r\n`
+      );
     });
   }
 
@@ -175,19 +207,24 @@ export default function SingleStackProvider({
     setIsInstallingDependencies(true);
     // Install dependencies
     console.log("Installing dependencies", stackId);
+    terminalWriteRef.current?.("Installing dependencies...\r\n");
     const installProcess = await webContainerInstance.spawn("npm", ["install"]);
     runningProcessesRef.current = [
       ...runningProcessesRef.current,
       installProcess,
     ];
 
-    installProcess.output.pipeTo(
-      new WritableStream({
-        write(data) {
-          console.log(data.toString());
-        },
-      })
-    );
+    try {
+      installProcess.output.pipeTo(
+        new WritableStream<string>({
+          write(data: string) {
+            terminalWriteRef.current?.(data.replace(/\n/g, "\r\n"));
+          },
+        })
+      );
+    } catch {
+      // ignore
+    }
     // Wait for install command to exit
     const exitPromise = installProcess.exit.finally(() => {
       runningProcessesRef.current = runningProcessesRef.current.filter(
@@ -201,13 +238,16 @@ export default function SingleStackProvider({
   async function mountFiles(files: any, webContainerInstance: WebContainer) {
     if (!webContainerInstance) return;
     console.log("Mount Files");
+    terminalWriteRef.current?.("Mounting files...\r\n");
 
     await webContainerInstance.mount(files);
+    terminalWriteRef.current?.("Files mounted.\r\n");
   }
 
   async function mountAndRun(files: any, webContainerInstance: WebContainer) {
     if (!webContainerInstance) return;
     console.log("Mount And Run");
+    terminalWriteRef.current?.("Starting stack: mount → install → dev\r\n");
     await mountFiles(files, webContainerInstance);
     setIsInstallingDependencies(true);
     await installDependencies(webContainerInstance);
@@ -263,6 +303,7 @@ export default function SingleStackProvider({
       setIsInstallingDependencies(false);
       setWebPreviewUrl(null);
       setWebContainerPort(null);
+      terminalWriteRef.current?.("WebContainer torn down.\r\n");
     };
   }, [stackId]);
 
@@ -294,6 +335,8 @@ export default function SingleStackProvider({
         setOnResponseFinish,
         mountFiles,
         bootWebContainer,
+        registerTerminal,
+        unregisterTerminal,
       }}
     >
       {children}
