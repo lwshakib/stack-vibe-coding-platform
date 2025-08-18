@@ -1,9 +1,9 @@
 "use client";
 import { trpc } from "@/utils/trpc";
 import { useChat } from "@ai-sdk/react";
-import { WebContainer } from "@webcontainer/api";
+import { WebContainer, WebContainerProcess } from "@webcontainer/api";
 import { DefaultChatTransport } from "ai";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 // Ensure only a single WebContainer boot happens at a time across this module
 let webContainerBootPromise: Promise<WebContainer> | null = null;
@@ -78,6 +78,8 @@ export default function SingleStackProvider({
   const { mutateAsync: createMessage } = trpc.createMessage.useMutation();
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [onResponseFinish, setOnResponseFinish] = useState(false);
+  const devServerProcessRef = useRef<WebContainerProcess | null>(null);
+  const runningProcessesRef = useRef<WebContainerProcess[]>([]);
 
   const { messages, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -135,8 +137,31 @@ export default function SingleStackProvider({
   async function startDevServer(webContainerInstance: WebContainer) {
     if (!webContainerInstance) return;
 
+    // Ensure any previous dev server is stopped
+    try {
+      devServerProcessRef.current?.kill();
+    } catch (error) {
+      console.warn("Failed to kill previous dev server process", error);
+    } finally {
+      devServerProcessRef.current = null;
+    }
+
     // `npm run dev`
-    await webContainerInstance.spawn("npm", ["run", "dev"]);
+    const devProcess = await webContainerInstance.spawn("npm", ["run", "dev"]);
+    devServerProcessRef.current = devProcess;
+    setIsDevServerRunning(true);
+
+    // Clear ref when process exits
+    devProcess.exit
+      .then(() => {
+        if (devServerProcessRef.current === devProcess) {
+          devServerProcessRef.current = null;
+        }
+        setIsDevServerRunning(false);
+      })
+      .catch(() => {
+        // Ignore
+      });
 
     webContainerInstance.on("server-ready", (port, url) => {
       setWebContainerPort(port);
@@ -150,6 +175,10 @@ export default function SingleStackProvider({
     // Install dependencies
     console.log("Installing dependencies", stackId);
     const installProcess = await webContainerInstance.spawn("npm", ["install"]);
+    runningProcessesRef.current = [
+      ...runningProcessesRef.current,
+      installProcess,
+    ];
 
     installProcess.output.pipeTo(
       new WritableStream({
@@ -159,8 +188,13 @@ export default function SingleStackProvider({
       })
     );
     // Wait for install command to exit
+    const exitPromise = installProcess.exit.finally(() => {
+      runningProcessesRef.current = runningProcessesRef.current.filter(
+        (p) => p !== installProcess
+      );
+    });
 
-    return installProcess.exit;
+    return exitPromise;
   }
 
   async function mountFiles(files: any, webContainerInstance: WebContainer) {
@@ -175,7 +209,6 @@ export default function SingleStackProvider({
     console.log("Mount And Run");
     await mountFiles(files, webContainerInstance);
     setIsInstallingDependencies(true);
-    setIsDevServerRunning(true);
     await installDependencies(webContainerInstance);
     await startDevServer(webContainerInstance);
     setIsInstallingDependencies(false);
@@ -185,6 +218,51 @@ export default function SingleStackProvider({
 
   useEffect(() => {
     console.log(stackId);
+  }, [stackId]);
+
+  // Cleanup when stackId changes or when provider unmounts
+  useEffect(() => {
+    return () => {
+      // Kill any running processes (dev server, installs, etc.)
+      try {
+        devServerProcessRef.current?.kill();
+      } catch (error) {
+        console.warn("Error killing dev server process", error);
+      } finally {
+        devServerProcessRef.current = null;
+      }
+
+      try {
+        for (const process of runningProcessesRef.current) {
+          try {
+            process.kill();
+          } catch {
+            // ignore
+          }
+        }
+      } finally {
+        runningProcessesRef.current = [];
+      }
+
+      // Teardown the container and reset globals
+      const instanceToTearDown = webContainerSingleton || webContainerInstance;
+      if (instanceToTearDown) {
+        try {
+          instanceToTearDown.teardown();
+        } catch (error) {
+          console.warn("Error tearing down WebContainer", error);
+        }
+      }
+      webContainerSingleton = null;
+      webContainerBootPromise = null;
+
+      // Reset local state
+      setWebContainerInstance(null);
+      setIsDevServerRunning(false);
+      setIsInstallingDependencies(false);
+      setWebPreviewUrl(null);
+      setWebContainerPort(null);
+    };
   }, [stackId]);
 
   return (
