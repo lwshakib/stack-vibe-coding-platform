@@ -137,13 +137,14 @@ export default function SingleStackProvider({
   async function startDevServer(webContainerInstance: WebContainer) {
     if (!webContainerInstance) return;
 
-    // Ensure any previous dev server is stopped
-    try {
-      devServerProcessRef.current?.kill();
-    } catch (error) {
-      console.warn("Failed to kill previous dev server process", error);
-    } finally {
-      devServerProcessRef.current = null;
+    // If server is already running, do nothing
+    if (
+      isDevServerRunning ||
+      devServerProcessRef.current ||
+      webPreviewUrl ||
+      webContainerPort
+    ) {
+      return;
     }
 
     // `npm run dev`
