@@ -147,6 +147,9 @@ export default function CodeView({
           value={selectedFile?.data?.contents || ""}
           theme={resolvedTheme === "dark" ? "pure-black" : "pure-white"}
           onMount={handleEditorDidMount}
+          onChange={(e)=>{
+            console.log(e)
+          }}
           options={{
             minimap: { enabled: false },
             fontSize: 12, // Smaller font on mobile

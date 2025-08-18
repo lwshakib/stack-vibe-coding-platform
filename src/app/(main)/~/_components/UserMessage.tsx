@@ -8,10 +8,12 @@ interface UserMessageProps {
 const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
   return (
     <div className="flex justify-end mb-4">
-      <div className="flex items-end gap-2 max-w-[80%]">
-        <div className="flex flex-col items-end">
-          <div className="bg-primary text-primary-foreground border border-primary rounded-lg p-3">
-            <p className="text-sm whitespace-pre-wrap break-words">{content}</p>
+      <div className="flex items-end gap-2 w-full min-w-0 justify-end">
+        <div className="flex flex-col items-end max-w-[80%] min-w-0">
+          <div className="bg-primary text-primary-foreground border border-primary rounded-lg p-3 w-full overflow-hidden">
+            <p className="text-sm whitespace-pre-wrap break-words break-all">
+              {content}
+            </p>
           </div>
         </div>
         <Avatar className="h-8 w-8">

@@ -109,14 +109,14 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
 
   return (
     <div className="flex justify-start mb-4">
-      <div className="flex items-start gap-2 w-full">
+      <div className="flex items-start gap-2 w-full min-w-0">
         <Avatar className="h-8 w-8">
           <AvatarImage src="/ai-avatar.png" alt="AI Assistant" />
           <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
             <Bot className="h-4 w-4" />
           </AvatarFallback>
         </Avatar>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-w-[80%] min-w-0">
           {/* Combined Introduction and Progress */}
           {(parsedContent.introduction || hasFiles) && (
             <div className="bg-muted border border-border rounded-lg p-3">
@@ -186,7 +186,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
           {/* Raw content fallback if no parsing occurred */}
           {!hasFiles && (
             <Card className="bg-muted border-border">
-              <CardContent className="p-3">
+              <CardContent className="p-3 overflow-hidden">
                 <p className="text-sm whitespace-pre-wrap break-words">
                   {content}
                 </p>
