@@ -1,7 +1,6 @@
 "use client";
 
 import AiInput from "@/components/ui/ai-input";
-import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { useSingleStack } from "@/context/SingleStackProvider";
 import { trpc } from "@/utils/trpc";
 import { useParams } from "next/navigation";
@@ -71,8 +70,16 @@ const MessageSkeleton: React.FC = () => (
 
 const LeftSideView: React.FC = () => {
   const params = useParams();
-  const { messages, setMessages, onResponseFinish, setOnResponseFinish, stackDetails, sendMessage, streamingStatus, stopStreaming } =
-    useSingleStack();
+  const {
+    messages,
+    setMessages,
+    onResponseFinish,
+    setOnResponseFinish,
+    stackDetails,
+    sendMessage,
+    streamingStatus,
+    stopStreaming,
+  } = useSingleStack();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { data: previousMessages, isLoading: messagesLoading } =
     trpc.getMessages.useQuery({
@@ -100,37 +107,29 @@ const LeftSideView: React.FC = () => {
           {messagesLoading ? (
             <MessageSkeleton />
           ) : messages && messages.length > 0 ? (
-            messages.map((message: any, index: number) =>
-              message.role === "user" ? (
-                <UserMessage key={index} content={message.parts.find((p: any)=> p.type === "text").text} />
-              ) : (
-                message.parts.map((part: any, partIndex: number) => {
-                  switch (part.type) {
-                    case "reasoning":
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${partIndex}`}
-                          className="w-full"
-                          isStreaming={streamingStatus === 'streaming'}
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    case "text":
-                      return (
-                        <AssistantMessage
-                          key={`${index}-${partIndex}`}
-                          content={part.text}
-                          lastMessage={index === messages.length - 1}
-                        />
-                      );
-                    default:
-                      return null;
-                  }
-                })
-              )
-            )
+            messages.map((message: any, index: number) => {
+              if (message.role === "user") {
+                const userText =
+                  message.parts.find((p: any) => p.type === "text")?.text ?? "";
+                return <UserMessage key={index} content={userText} />;
+              }
+              const reasoningText = message.parts.find(
+                (p: any) => p.type === "reasoning"
+              )?.text;
+              const contentText = message.parts
+                .filter((p: any) => p.type === "text")
+                .map((p: any) => p.text)
+                .join("\n\n");
+              return (
+                <AssistantMessage
+                  key={index}
+                  content={contentText}
+                  lastMessage={index === messages.length - 1}
+                  reasoningText={reasoningText}
+                  isStreaming={streamingStatus === "streaming"}
+                />
+              );
+            })
           ) : (
             <div className="text-center text-muted-foreground mt-8">
               <p>No messages yet. Start a conversation!</p>
@@ -140,7 +139,12 @@ const LeftSideView: React.FC = () => {
         </div>
       </div>
       <div className="flex-shrink-0 px-4">
-        <AiInput stackDetails={stackDetails} sendMessage={sendMessage} stopStreaming={stopStreaming} streamingStatus={streamingStatus} />
+        <AiInput
+          stackDetails={stackDetails}
+          sendMessage={sendMessage}
+          stopStreaming={stopStreaming}
+          streamingStatus={streamingStatus}
+        />
       </div>
     </div>
   );

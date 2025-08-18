@@ -1,5 +1,10 @@
 "use client";
 import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -17,11 +22,15 @@ import React from "react";
 interface AssistantMessageProps {
   content: string;
   lastMessage: boolean;
+  reasoningText?: string;
+  isStreaming?: boolean;
 }
 
 const AssistantMessage: React.FC<AssistantMessageProps> = ({
   content,
   lastMessage = false,
+  reasoningText,
+  isStreaming = false,
 }) => {
   const {
     onResponseFinish,
@@ -121,6 +130,12 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
           {(parsedContent.introduction || hasFiles) && (
             <div className="bg-muted border border-border rounded-lg p-3">
               <div className="space-y-3">
+                {reasoningText && (
+                  <Reasoning className="w-full" isStreaming={isStreaming}>
+                    <ReasoningTrigger />
+                    <ReasoningContent>{reasoningText}</ReasoningContent>
+                  </Reasoning>
+                )}
                 {/* Introduction */}
                 {parsedContent.introduction && (
                   <p className="text-sm whitespace-pre-wrap break-words">
@@ -187,6 +202,14 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
           {!hasFiles && (
             <Card className="bg-muted border-border">
               <CardContent className="p-3 overflow-hidden">
+                {reasoningText && (
+                  <div className="mb-2">
+                    <Reasoning className="w-full" isStreaming={isStreaming}>
+                      <ReasoningTrigger />
+                      <ReasoningContent>{reasoningText}</ReasoningContent>
+                    </Reasoning>
+                  </div>
+                )}
                 <p className="text-sm whitespace-pre-wrap break-words">
                   {content}
                 </p>
