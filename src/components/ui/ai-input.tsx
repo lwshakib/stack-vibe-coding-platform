@@ -18,7 +18,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useStack } from "@/context/StackProvider";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/utils/trpc";
+import { useParams, useRouter } from "next/navigation";
+import { useSingleStack } from "@/context/SingleStackProvider";
+import { treeToTemplate } from "@/utils/converter";
+import { filterIgnoredFiles } from "@/utils/helpers";
 
 interface UseAutoResizeTextareaProps {
   minHeight: number;
@@ -119,14 +125,17 @@ const AnimatedPlaceholder = () => (
     initial={{ opacity: 0, y: 5 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.1 }}
-    className="pointer-events-none w-[150px] text-sm absolute text-black/70 dark:text-white/70"
+    className="pointer-events-none w-[150px] text-sm absolute text-muted-foreground"
   >
-    Ask Coding Lab...
+    Stack your vibe...
   </motion.p>
 );
 
-export default function AiInput() {
+export default function AiInput({stackDetails, sendMessage}: {stackDetails?: any, sendMessage?: any}) {
   const [value, setValue] = useState("");
+  const { mutateAsync: createStack } = trpc.createStack.useMutation();
+  const { mutateAsync: createMessage } = trpc.createMessage.useMutation();
+  const params = useParams();
   const { textareaRef, adjustHeight } = useAutoResizeTextarea({
     minHeight: MIN_HEIGHT,
     maxHeight: MAX_HEIGHT,
@@ -134,7 +143,8 @@ export default function AiInput() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCommandPopover, setShowCommandPopover] = useState(false);
-
+  const { setImage, setStacks } = useStack();
+  const router = useRouter();
   const handelClose = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -148,10 +158,11 @@ export default function AiInput() {
     const file = e.target.files ? e.target.files[0] : null;
     if (file) {
       setImagePreview(URL.createObjectURL(file));
+      setImage(file); // Store the file in StackProvider
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Default function - you can customize this
     console.log("Submitting:", value);
     if (imagePreview) {
@@ -159,6 +170,28 @@ export default function AiInput() {
     }
     setValue("");
     adjustHeight(true);
+    if (!params.id) {
+      const { stack } = await createStack();
+      setStacks((prev: any) => [...prev, stack]);
+      router.push(`/~/${stack.id}?message=${encodeURIComponent(value)}`);
+    }else{
+      const filteredFiles = treeToTemplate(filterIgnoredFiles(stackDetails?.stack?.files));
+      sendMessage({
+        text: value,
+        files: imagePreview || null,
+        },
+        {
+          body: {
+            projectFiles: filteredFiles
+          },
+        }
+      );
+      createMessage({
+        stackId: params?.id as string,
+        parts: [{ type: "text", text: value }],
+        role: "user",
+      });
+    }
   };
 
   useEffect(() => {
@@ -189,8 +222,8 @@ export default function AiInput() {
 
   return (
     <div className="w-full py-4">
-      <div className="relative max-w-xl border rounded-[22px] bg-background/50 border-black/5 p-1 w-full mx-auto">
-        <div className="relative rounded-2xl border border-black/5 bg-neutral-800/5 flex flex-col">
+      <div className="relative max-w-xl border rounded-[22px] bg-background/50 border-border p-1 w-full mx-auto">
+        <div className="relative rounded-2xl border border-border bg-neutral-800/5 flex flex-col">
           {imagePreview && (
             <div className="relative m-2">
               <div className="relative w-48 h-48 bg-black/5 dark:bg-white/5 rounded-xl overflow-hidden">
@@ -203,7 +236,7 @@ export default function AiInput() {
                 />
                 <button
                   onClick={handelClose}
-                  className="bg-[#e8e8e8] text-[#464646] absolute top-2 right-2 shadow-3xl rounded-full rotate-45 p-1"
+                  className="bg-secondary text-secondary-foreground absolute top-2 right-2 shadow-3xl rounded-full rotate-45 p-1"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -223,20 +256,20 @@ export default function AiInput() {
                   <div />
                 </PopoverTrigger>
                 <PopoverContent
-                  className="bg-background/50 p-0 border-none shadow-lg"
+                  className="bg-background/50 p-0 border border-border shadow-lg"
                   align="start"
                   side="top"
                   sideOffset={8}
                   style={{ minWidth: 260 }}
                 >
                   <ScrollArea className="h-[200px] pr-4">
-                    <div className="flex flex-col divide-y divide-black/10">
+                    <div className="flex flex-col divide-y divide-border">
                       {COMMANDS.map((cmd, idx) => (
                         <TooltipProvider key={cmd.title}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div
-                                className="relative group cursor-pointer px-4 py-3 hover:bg-black/10"
+                                className="relative group cursor-pointer px-4 py-3 hover:bg-muted/50"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -250,7 +283,7 @@ export default function AiInput() {
                             </TooltipTrigger>
                             <TooltipContent
                               side="right"
-                              className="bg-background/50 border border-black/10 max-w-[200px] text-xs text-black dark:text-white"
+                              className="bg-background/50 border border-border max-w-[200px] text-xs"
                             >
                               <p>{cmd.prompt}</p>
                             </TooltipContent>
@@ -265,7 +298,7 @@ export default function AiInput() {
                 id="ai-input-04"
                 value={value}
                 placeholder=""
-                className="w-full rounded-2xl rounded-b-none px-4 py-3 bg-black/5 dark:bg-white/5 border-none dark:text-white resize-none focus-visible:ring-0 leading-[1.2]"
+                className="w-full rounded-2xl rounded-b-none px-4 py-3 bg-black/5 dark:bg-white/5 border-none text-foreground resize-none focus-visible:ring-0 leading-[1.2]"
                 ref={textareaRef}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -290,10 +323,10 @@ export default function AiInput() {
             <div className="absolute left-3 bottom-3 flex items-center gap-2">
               <label
                 className={cn(
-                  "cursor-pointer relative rounded-full p-2 bg-secondary/50",
+                  "cursor-pointer relative rounded-full p-2 bg-black/5 dark:bg-white/5",
                   imagePreview
-                    ? "bg-primary/15 border border-primary text-primary"
-                    : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    ? "bg-destructive/15 border border-destructive text-destructive"
+                    : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                 )}
               >
                 <input
@@ -305,8 +338,8 @@ export default function AiInput() {
                 />
                 <Paperclip
                   className={cn(
-                    "w-4 h-4 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors",
-                    imagePreview && "text-[#ff3f17]"
+                    "w-4 h-4 text-muted-foreground hover:text-foreground transition-colors",
+                    imagePreview && "text-destructive"
                   )}
                 />
               </label>
@@ -316,8 +349,8 @@ export default function AiInput() {
                 className={cn(
                   "rounded-full p-2 transition-colors",
                   value.trim().length > 0
-                    ? "bg-black/5 dark:bg-white/5 text-black/20 dark:text-white/20 cursor-not-allowed"
-                    : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white"
+                    ? "bg-black/5 dark:bg-white/5 text-muted-foreground/50 cursor-not-allowed"
+                    : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => {
                   setValue("/");
@@ -337,8 +370,8 @@ export default function AiInput() {
                       className={cn(
                         "rounded-full p-2 transition-colors",
                         value.trim().length === 0
-                          ? "bg-black/5 dark:bg-white/5 text-black/20 dark:text-white/20 cursor-not-allowed"
-                          : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white"
+                          ? "bg-black/5 dark:bg-white/5 text-muted-foreground/50 cursor-not-allowed"
+                          : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <Sparkles className="w-4 h-4" />
@@ -356,10 +389,10 @@ export default function AiInput() {
                 className={cn(
                   "rounded-full p-2 transition-colors",
                   value.trim().length === 0
-                    ? "bg-black/5 dark:bg-white/5 text-black/20 dark:text-white/20 cursor-not-allowed"
+                    ? "bg-black/5 dark:bg-white/5 text-muted-foreground/50 cursor-not-allowed"
                     : value
-                    ? "bg-[#ff3f17]/15 text-[#ff3f17]"
-                    : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white"
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-black/5 dark:bg-white/5 text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Send className="w-4 h-4" />

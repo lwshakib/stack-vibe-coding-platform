@@ -1,5 +1,4 @@
 import GlobalProviders from "@/context/GlobalProviders";
-import { checkUser } from "@/lib/checkUser";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/themes";
 import type { Metadata } from "next";
@@ -43,7 +42,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await checkUser();
   return (
     <ClerkProvider
       appearance={{

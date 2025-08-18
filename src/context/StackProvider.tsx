@@ -1,3 +1,5 @@
+import { trpc } from "@/utils/trpc";
+import { useParams } from "next/navigation";
 import { createContext, useContext, useState } from "react";
 
 interface StackContextType {
@@ -16,9 +18,12 @@ interface StackProviderProps {
 const StackContext = createContext<StackContextType | null>(null);
 
 export default function StackProvider({ children }: StackProviderProps) {
-  const [image, setImage] = useState();
+  const [image, setImage] = useState(null);
   const [currentStack, setCurrentStack] = useState();
-  const [stacks, setStacks] = useState();
+  const params = useParams();
+  const { mutate: createMessage } = trpc.createMessage.useMutation();
+  const [stacks, setStacks] = useState([]);
+
   return (
     <StackContext.Provider
       value={{

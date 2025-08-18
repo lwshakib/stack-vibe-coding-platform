@@ -1,9 +1,11 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
-import React, { useState } from "react";
 import { ThemeProvider } from "next-themes";
+import React, { useState } from "react";
+import { Toaster } from "sonner";
 import { trpc } from "../utils/trpc";
+import StackProvider from "./StackProvider";
 
 export default function GlobalProviders({
   children,
@@ -29,7 +31,12 @@ export default function GlobalProviders({
       disableTransitionOnChange
     >
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+          <StackProvider>
+            {children}
+            <Toaster />
+          </StackProvider>
+        </QueryClientProvider>
       </trpc.Provider>
     </ThemeProvider>
   );
