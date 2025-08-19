@@ -68,6 +68,8 @@ export default function TopView() {
   const [readmeContent, setReadmeContent] = useState<string | null>(null);
   const [enhanceReadme, setEnhanceReadme] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [linkingRepoId, setLinkingRepoId] = useState<number | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const currentName = stackDetails?.stack?.name ?? "";
   const stackId = stackDetails?.stack?.id as string | undefined;
@@ -188,6 +190,8 @@ export default function TopView() {
     setReadmeContent(null);
     setEnhanceReadme(false);
     setIsDownloading(false);
+    setLinkingRepoId(null);
+    setLinkError(null);
   };
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -237,6 +241,35 @@ export default function TopView() {
       );
     } finally {
       setIsSubmittingRepo(false);
+    }
+  };
+
+  const handleLinkRepo = async (repositoryId: number) => {
+    if (!stackId) return;
+    try {
+      setLinkingRepoId(repositoryId);
+      setLinkError(null);
+      const response = await fetch("/api/github/auth/access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "linkRepo",
+          stackId,
+          repositoryId,
+        }),
+      });
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody?.error || "Failed to link repository");
+      }
+      await checkGithubConnection();
+    } catch (error) {
+      console.error("Error linking repo:", error);
+      setLinkError(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
+    } finally {
+      setLinkingRepoId(null);
     }
   };
 
@@ -695,7 +728,7 @@ export default function TopView() {
                         )}
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <h3 className="text-sm font-medium">
                             No repository linked
@@ -711,8 +744,58 @@ export default function TopView() {
                           </Button>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Create a new repository and link it to this project.
+                          Select an existing repository to link, or create a new
+                          one.
                         </p>
+
+                        {linkError && (
+                          <p className="text-sm text-destructive">
+                            {linkError}
+                          </p>
+                        )}
+
+                        <div className="max-h-72 overflow-y-auto space-y-2">
+                          {(githubStatus.data?.repos || []).map((repo: any) => (
+                            <div
+                              key={repo.id}
+                              className="flex items-center justify-between p-3 rounded-md border"
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center space-x-2 min-w-0">
+                                  <span className="text-sm font-medium truncate">
+                                    {repo.name}
+                                  </span>
+                                  {repo.private && (
+                                    <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {repo.description || "No description"}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 ml-3 flex-shrink-0">
+                                <div className="text-xs text-muted-foreground">
+                                  {repo.language || "No language"}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleLinkRepo(repo.id)}
+                                  disabled={!!linkingRepoId}
+                                >
+                                  {linkingRepoId === repo.id
+                                    ? "Linking..."
+                                    : "Link"}
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          {(!githubStatus.data?.repos ||
+                            githubStatus.data.repos.length === 0) && (
+                            <div className="text-sm text-muted-foreground text-center py-6">
+                              No repositories found in your GitHub account.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

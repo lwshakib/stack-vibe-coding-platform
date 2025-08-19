@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
 
   if (!stackId) {
     // OAuth connected, but no specific stack requested
-    return NextResponse.json({ repo: null });
+    // Also provide user's repositories for convenience
+    const repos = await octokit.paginate(
+      octokit.repos.listForAuthenticatedUser,
+      { per_page: 100, sort: "updated" }
+    );
+    return NextResponse.json({ repo: null, repos });
   }
 
   const user = await checkUser();
@@ -34,8 +39,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Stack not found" }, { status: 404 });
   }
 
+  // Always include available repos so the client can offer linking when none is linked
+  const repos = await octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+    per_page: 100,
+    sort: "updated",
+  });
+
   if (!stack.githubRepoId) {
-    return NextResponse.json({ repo: null });
+    return NextResponse.json({ repo: null, repos });
   }
 
   // Fetch repo details by repository id
@@ -43,7 +54,7 @@ export async function GET(request: NextRequest) {
     repository_id: Number(stack.githubRepoId),
   });
 
-  return NextResponse.json({ repo: repoById.data });
+  return NextResponse.json({ repo: repoById.data, repos });
 }
 
 export async function POST(request: NextRequest) {
@@ -163,6 +174,56 @@ Generate only the README content without any explanations or additional text.`;
         { status: 500 }
       );
     }
+  } else if (action === "linkRepo") {
+    // Link an existing repository to the stack
+    const { stackId, repositoryId } = data as {
+      stackId?: string;
+      repositoryId?: string | number;
+    };
+    const accessToken = request.cookies.get("github_access_token")?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: "No access token found" },
+        { status: 401 }
+      );
+    }
+    if (!stackId || !repositoryId) {
+      return NextResponse.json(
+        { error: "Missing stackId or repositoryId" },
+        { status: 400 }
+      );
+    }
+
+    const user = await checkUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const stack = await prisma.stack.findFirst({
+      where: { id: stackId, clerkId: user.clerkId },
+    });
+    if (!stack) {
+      return NextResponse.json({ error: "Stack not found" }, { status: 404 });
+    }
+
+    const octokit = new Octokit({ auth: accessToken });
+    // Validate repo exists and the user has access by fetching it
+    const { data: repo } = await octokit.request(
+      "GET /repositories/{repository_id}",
+      {
+        repository_id: Number(repositoryId),
+      }
+    );
+
+    await prisma.stack.update({
+      where: { id: stack.id },
+      data: {
+        githubRepoId: String(repo.id),
+        githubOwnerId: String(repo.owner?.id ?? ""),
+      },
+    });
+
+    return NextResponse.json({ repo });
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
