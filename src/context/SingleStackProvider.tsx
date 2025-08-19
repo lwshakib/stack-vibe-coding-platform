@@ -265,7 +265,8 @@ export default function SingleStackProvider({
 
   // Function to update a single file and merge with existing files
   async function updateFile(filePath: string, newContent: string) {
-    if (!stackDetails?.stack?.files) return;
+    const currentFiles: any = (stackDetails as any)?.stack?.files;
+    if (!currentFiles) return;
 
     // Create the new file structure
     const pathParts = filePath.split("/");
@@ -293,7 +294,7 @@ export default function SingleStackProvider({
     }
 
     // Deep merge with existing files
-    const mergedFiles = deepMerge(stackDetails.stack.files, newFileStructure);
+    const mergedFiles = deepMerge(currentFiles, newFileStructure);
 
     // Update the database
     await updateStack({

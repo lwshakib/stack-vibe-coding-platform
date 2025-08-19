@@ -2,6 +2,19 @@ import { checkUser } from "@/lib/checkUser";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+// Define types for the file structure
+interface FileNode {
+  file: {
+    contents: string;
+  };
+}
+
+interface DirectoryNode {
+  directory: Record<string, FileNode | DirectoryNode>;
+}
+
+type FileSystemNode = FileNode | DirectoryNode;
+
 export async function POST(request: NextRequest) {
   const { stackId } = await request.json();
 
@@ -28,30 +41,39 @@ export async function POST(request: NextRequest) {
     const zip = new JSZip();
 
     // Function to recursively add files to ZIP
-    const addFilesToZip = (files: any, currentPath: string = "") => {
+    const addFilesToZip = (
+      files: Record<string, FileSystemNode>,
+      currentPath: string = ""
+    ) => {
       for (const [name, node] of Object.entries(files)) {
         const fullPath = currentPath ? `${currentPath}/${name}` : name;
 
-        if ("file" in node) {
+        if (node && typeof node === "object" && "file" in node) {
           // It's a file node
-          zip.file(fullPath, node.file.contents || "");
-        } else if ("directory" in node) {
+          const fileNode = node as FileNode;
+          zip.file(fullPath, fileNode.file.contents || "");
+        } else if (node && typeof node === "object" && "directory" in node) {
           // It's a directory node, recursively traverse
-          addFilesToZip(node.directory, fullPath);
+          const dirNode = node as DirectoryNode;
+          addFilesToZip(dirNode.directory, fullPath);
         }
       }
     };
 
     // Add all files to the ZIP
-    if (stack.files) {
-      addFilesToZip(stack.files);
+    if (
+      stack.files &&
+      typeof stack.files === "object" &&
+      !Array.isArray(stack.files)
+    ) {
+      addFilesToZip(stack.files as unknown as Record<string, FileSystemNode>);
     }
 
     // Generate ZIP buffer
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
     // Create response with ZIP file
-    const response = new NextResponse(zipBuffer);
+    const response = new NextResponse(new Uint8Array(zipBuffer));
     response.headers.set("Content-Type", "application/zip");
     response.headers.set(
       "Content-Disposition",
