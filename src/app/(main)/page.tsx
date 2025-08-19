@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useStack } from "@/context/StackProvider";
 import { trpc } from "@/utils/trpc";
-import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,7 @@ export default function Home() {
             <div className="space-y-4">
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-semibold">
-                  Welcome to Coding Labs 2.0
+                  Welcome to Stack - Vibe Coding Platform
                 </h2>
                 <p className="text-muted-foreground">
                   Please sign in to access all features and start coding with AI
@@ -45,17 +45,22 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-4">
-                <SignInButton mode="modal">
-                  <Button className="w-full">Sign In</Button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <Button variant="outline" className="w-full">
-                    Sign Up
-                  </Button>
-                </SignUpButton>
+                <Button
+                  className="w-full"
+                  onClick={() => router.push("/sign-in")}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => router.push("/sign-up")}
+                >
+                  Sign Up
+                </Button>
                 <p className="text-sm text-muted-foreground text-center">
                   Sign in or create an account to unlock the full potential of
-                  Coding Labs 2.0
+                  Stack - Vibe Coding Platform
                 </p>
               </div>
             </div>

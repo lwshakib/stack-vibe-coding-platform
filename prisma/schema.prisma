@@ -33,6 +33,8 @@ model Stack {
   name      String
   files     Json?
   template  String?
+  githubRepoId String? @unique
+  githubOwnerId String? @unique
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

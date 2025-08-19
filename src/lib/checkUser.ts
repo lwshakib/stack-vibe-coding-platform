@@ -15,14 +15,12 @@ export async function checkUser() {
       return existUser;
     }
 
-    const name = `${user.firstName} ${
-      user.lastName != null ? user.lastName : ""
-    }`;
+    const name = user.fullName || "";
 
     const newUser = await prisma.user.create({
       data: {
         clerkId: user.id,
-        name,
+        name: name,
         imageUrl: user.imageUrl as string,
         email: user.emailAddresses[0].emailAddress,
       },

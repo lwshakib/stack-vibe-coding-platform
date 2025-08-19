@@ -43,6 +43,7 @@ interface SingleStackContextType {
   unregisterTerminal: () => void;
   streamingStatus: ChatStatus;
   stopStreaming: () => void;
+  updateFile: (filePath: string, newContent: string) => Promise<any>;
 }
 
 interface SingleStackProviderProps {
@@ -80,6 +81,8 @@ export default function SingleStackProvider({
       stackId,
     });
   const { mutateAsync: createMessage } = trpc.createMessage.useMutation();
+  const { mutateAsync: updateStack } = trpc.updateStack.useMutation();
+  const utils = trpc.useUtils();
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [onResponseFinish, setOnResponseFinish] = useState(false);
   const devServerProcessRef = useRef<WebContainerProcess | null>(null);
@@ -94,7 +97,13 @@ export default function SingleStackProvider({
     terminalWriteRef.current = null;
   }
 
-  const { messages, sendMessage, setMessages, status: streamingStatus, stop: stopStreaming } = useChat({
+  const {
+    messages,
+    sendMessage,
+    setMessages,
+    status: streamingStatus,
+    stop: stopStreaming,
+  } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
@@ -237,6 +246,72 @@ export default function SingleStackProvider({
     return exitPromise;
   }
 
+  // Deep merge function for files
+  const deepMerge = (target: any, source: any) => {
+    const result = { ...target };
+    for (const key in source) {
+      if (
+        source[key] &&
+        typeof source[key] === "object" &&
+        !Array.isArray(source[key])
+      ) {
+        result[key] = deepMerge(target[key] || {}, source[key]);
+      } else {
+        result[key] = source[key];
+      }
+    }
+    return result;
+  };
+
+  // Function to update a single file and merge with existing files
+  async function updateFile(filePath: string, newContent: string) {
+    if (!stackDetails?.stack?.files) return;
+
+    // Create the new file structure
+    const pathParts = filePath.split("/");
+    let newFileStructure: Record<string, any> = {};
+    let currentLevel = newFileStructure;
+
+    // Build the nested structure
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+
+      if (i === pathParts.length - 1) {
+        // This is the file (last part)
+        currentLevel[part] = {
+          file: {
+            contents: newContent,
+          },
+        };
+      } else {
+        // This is a directory
+        currentLevel[part] = {
+          directory: {},
+        };
+        currentLevel = currentLevel[part].directory;
+      }
+    }
+
+    // Deep merge with existing files
+    const mergedFiles = deepMerge(stackDetails.stack.files, newFileStructure);
+
+    // Update the database
+    await updateStack({
+      stackId: stackId,
+      files: mergedFiles,
+    });
+
+    // Invalidate and refetch stack details
+    utils.getStackDetails.invalidate({ stackId });
+
+    // Update WebContainer if running
+    if (webContainerInstance) {
+      await mountFiles(mergedFiles, webContainerInstance);
+    }
+
+    return mergedFiles;
+  }
+
   async function mountFiles(files: any, webContainerInstance: WebContainer) {
     if (!webContainerInstance) return;
     console.log("Mount Files");
@@ -341,6 +416,7 @@ export default function SingleStackProvider({
         unregisterTerminal,
         streamingStatus,
         stopStreaming,
+        updateFile,
       }}
     >
       {children}

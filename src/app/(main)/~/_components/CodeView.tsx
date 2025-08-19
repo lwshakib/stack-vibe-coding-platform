@@ -14,9 +14,10 @@ interface FileHeaderProps {
   file: any;
   onCopy: () => void;
   copied: boolean;
+  isUpdating: boolean;
 }
 
-function FileHeader({ file, onCopy, copied }: FileHeaderProps) {
+function FileHeader({ file, onCopy, copied, isUpdating }: FileHeaderProps) {
   const getFileType = (filePath: string) => {
     if (filePath.endsWith(".tsx")) return "TSX";
     if (filePath.endsWith(".ts")) return "TS";
@@ -40,6 +41,12 @@ function FileHeader({ file, onCopy, copied }: FileHeaderProps) {
         >
           {file.id ?? file.label}
         </span>
+        {isUpdating && (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-blue-500">Saving...</span>
+          </div>
+        )}
       </div>
       <div className="flex gap-1">
         <Button
@@ -64,8 +71,9 @@ export default function CodeView({
   filename = "untitled.js",
 }: CodeEditorProps) {
   const [copied, setCopied] = React.useState(false);
+  const [isUpdating, setIsUpdating] = React.useState(false);
   const { resolvedTheme } = useTheme();
-  const { selectedFile } = useSingleStack();
+  const { selectedFile, updateFile } = useSingleStack();
 
   const handleCopy = () => {
     const textToCopy = selectedFile?.data?.contents ?? "";
@@ -111,7 +119,57 @@ export default function CodeView({
     if (changeDebounceRef.current) {
       window.clearTimeout(changeDebounceRef.current);
     }
-    changeDebounceRef.current = window.setTimeout(() => {}, 1000);
+    changeDebounceRef.current = window.setTimeout(async () => {
+      // Log the full path and content
+      console.log("File Path:", selectedFile?.id);
+      console.log("File Content:", value || selectedFile?.data?.contents);
+
+      // Create tree structure from file path
+      if (selectedFile?.id) {
+        const filePath = selectedFile.id;
+        const pathParts = filePath.split("/");
+
+        // Build the tree structure
+        let currentLevel: Record<string, any> = {};
+        let tree = currentLevel;
+
+        // Process each path segment
+        for (let i = 0; i < pathParts.length; i++) {
+          const part = pathParts[i];
+
+          if (i === pathParts.length - 1) {
+            // This is the file (last part)
+            currentLevel[part] = {
+              file: {
+                contents: value || selectedFile?.data?.contents,
+              },
+            };
+          } else {
+            // This is a directory
+            currentLevel[part] = {
+              directory: {},
+            };
+            currentLevel = currentLevel[part].directory;
+          }
+        }
+
+        console.log("Tree Structure:", tree);
+
+        // Update the file in database and WebContainer
+        try {
+          const newContent = value || selectedFile?.data?.contents;
+          if (newContent !== undefined) {
+            setIsUpdating(true);
+            await updateFile(filePath, newContent);
+            console.log("File updated successfully:", filePath);
+          }
+        } catch (error) {
+          console.error("Error updating file:", error);
+        } finally {
+          setIsUpdating(false);
+        }
+      }
+    }, 1000);
   };
 
   if (!selectedFile) {
@@ -167,7 +225,12 @@ export default function CodeView({
   return (
     <div className="flex flex-col h-full">
       {/* File Header */}
-      <FileHeader file={selectedFile} onCopy={handleCopy} copied={copied} />
+      <FileHeader
+        file={selectedFile}
+        onCopy={handleCopy}
+        copied={copied}
+        isUpdating={isUpdating}
+      />
 
       <div className="flex-1">
         <Editor
