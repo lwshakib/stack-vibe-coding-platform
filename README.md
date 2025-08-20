@@ -2,6 +2,8 @@
 
 A professional, AI-powered coding platform that supports React, Next.js, Expo, and Node.js development. Build, deploy, and manage your projects with an integrated development environment featuring AI assistance, real-time collaboration, and web container technology.
 
+![App Demo](public/demo.gif)
+
 ## ✨ Features
 
 ### 🎯 **AI-Powered Development**
