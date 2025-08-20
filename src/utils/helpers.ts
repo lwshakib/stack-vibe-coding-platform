@@ -1,14 +1,14 @@
 export const filterIgnoredFiles = (files: any): any => {
     if (!files || typeof files !== "object") return files;
   
-    // First, extract ignore patterns from .labs file
+    // First, extract ignore patterns from .stack file
     const ignorePatterns: string[] = [];
     if (
-      files[".labs"] &&
-      files[".labs"].directory &&
-      files[".labs"].directory.ignore
+      files[".stack"] &&
+      files[".stack"].directory &&
+      files[".stack"].directory.ignore
     ) {
-      const ignoreFile = files[".labs"].directory.ignore.file;
+      const ignoreFile = files[".stack"].directory.ignore.file;
       if (ignoreFile && ignoreFile.contents) {
         ignorePatterns.push(
           ...ignoreFile.contents.split("\n").filter((line: string) => line.trim())
@@ -67,8 +67,8 @@ export const filterIgnoredFiles = (files: any): any => {
       const filtered: any = {};
   
       for (const [key, value] of Object.entries(filesObj)) {
-        // Skip .labs directory from output
-        if (key === ".labs") continue;
+        // Skip .stack directory from output
+        if (key === ".stack") continue;
   
         const fullPath = currentPath ? `${currentPath}/${key}` : key;
   

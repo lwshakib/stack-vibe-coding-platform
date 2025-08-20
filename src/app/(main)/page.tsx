@@ -72,7 +72,7 @@ export default function Home() {
       <div className="border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => router.push("/")}> 
               <div className="relative w-7 h-9">
                 <Image
                   src={logoSrc}
@@ -160,46 +160,66 @@ export default function Home() {
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() => handleClickBadge("Create a financial app")}
+                onClick={() =>
+                  handleClickBadge(
+                    "Create a Financial App"
+                  )
+                }
               >
-                Create a financial app
-              </Badge>
-              <Badge
-                variant="outline"
-                className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() => handleClickBadge("Design a directory website")}
-              >
-                Design a directory website
+                Create a Financial App
               </Badge>
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
                 onClick={() =>
-                  handleClickBadge("Build a project management app")
+                  handleClickBadge(
+                    "Create a Todo Mobile App"
+                  )
                 }
               >
-                Build a project management app
+                Create a Todo Mobile App
               </Badge>
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() => handleClickBadge("Make a landing page")}
+                onClick={() =>
+                  handleClickBadge("Build a Kanban Board App")
+                }
               >
-                Make a landing page
+                Build a Kanban Board App
               </Badge>
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() => handleClickBadge("Generate a CRM")}
+                onClick={() =>
+                  handleClickBadge(
+                    "Build a Library Management API Server"
+                  )
+                }
               >
-                Generate a CRM
+                Build a Library Management API Server
               </Badge>
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() => handleClickBadge("Build a mobile app")}
+                onClick={() =>
+                  handleClickBadge(
+                    "Build a University Student Portal API Server"
+                  )
+                }
               >
-                Build a mobile app
+                Build a University Student Portal API Server
+              </Badge>
+              <Badge
+                variant="outline"
+                className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
+                onClick={() =>
+                  handleClickBadge(
+                    "Create a Weather App"
+                  )
+                }
+              >
+                Create a Weather App
               </Badge>
             </div>
           </div>

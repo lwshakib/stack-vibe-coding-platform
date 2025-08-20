@@ -122,6 +122,7 @@ export const appRouter = router({
         template: result.template,
         reason: result.reason,
         files: files,
+        updatedStackName:result.updatedStackName
       };
     }),
 
@@ -226,12 +227,13 @@ export const appRouter = router({
     .mutation(async ({ ctx, input }) => {
       const response = await generateText({
         model: getGeminiModel(),
-        system:"You are an expert prompt engineer. Improve the user's prompt for a coding assistant so it is clear, specific, and actionable. Preserve the original intent, add necessary details or constraints if implied, and remove redundancy. Output only the improved prompt without any explanations, preface, quotes, or code fences.",
+        system:
+          "You are an expert prompt engineer. Improve the user's prompt for a coding assistant so it is clear, specific, and actionable. Preserve the original intent, add necessary details or constraints if implied, and remove redundancy. Output only the improved prompt without any explanations, preface, quotes, or code fences.",
         prompt: input.prompt,
       });
 
       return {
-        enhanced: response.text.trim()
+        enhanced: response.text.trim(),
       };
     }),
 });

@@ -11,12 +11,26 @@ export const guessTheTemplate = async (text: string) => {
       { role: "user", parts: [{ type: "text", text }] },
     ]),
     schema: z.object({
-      statusCode: z.number().describe("200 for success, 400 for error, 300 for clarification needed"),
-      template: z.string().describe("Recommended template name or empty string for errors"),
-      reason: z.string().describe("Detailed explanation of the recommendation or error message"),
+      statusCode: z
+        .number()
+        .describe(
+          "200 for success, 400 for error, 300 for clarification needed"
+        ),
+      template: z
+        .string()
+        .describe("Recommended template name or empty string for errors"),
+      reason: z
+        .string()
+        .describe(
+          "Detailed explanation of the recommendation or error message"
+        ),
+      updatedStackName: z
+        .string()
+        .describe(
+          "A concise 3-4 word, Title Case stack name derived from the user's message (no emojis; minimal punctuation)"
+        ),
     }),
   });
 
   return response.object;
-
-}
+};

@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import HtmlContent from "@/components/ui/html-content";
 import { useSingleStack } from "@/context/SingleStackProvider";
 import parseStackArtifact from "@/utils/parser";
 import { trpc } from "@/utils/trpc";
@@ -109,13 +110,6 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
   // Check if there are any files at all
   const hasFiles = parsedContent.progress.files.length > 0;
 
-  // Get default open accordion values (files that are processing)
-  const defaultOpenValues = parsedContent.progress.files
-    .map((file, index) =>
-      file.status === "PROCESSING" ? `file-${index}` : null
-    )
-    .filter(Boolean) as string[];
-
   return (
     <div className="flex justify-start mb-4">
       <div className="flex items-start gap-2 w-full min-w-0">
@@ -138,9 +132,10 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
                 )}
                 {/* Introduction */}
                 {parsedContent.introduction && (
-                  <p className="text-sm whitespace-pre-wrap break-words">
-                    {parsedContent.introduction}
-                  </p>
+                  <HtmlContent
+                    content={parsedContent.introduction}
+                    className="text-sm"
+                  />
                 )}
 
                 {/* Files Section with Accordion */}
@@ -149,7 +144,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
                     <Accordion
                       type="multiple"
                       className="w-full bg-background/50 rounded-md p-2"
-                      defaultValue={defaultOpenValues}
+                      defaultValue={hasProcessingFiles ? ["files"] : []}
                     >
                       <AccordionItem value="files" className="border-none">
                         <AccordionTrigger className="py-2 hover:no-underline px-2">
@@ -192,6 +187,16 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
+                  </div>
+                )}
+
+                {/* Conclusion */}
+                {parsedContent.conclusion && (
+                  <div className="pt-2">
+                    <HtmlContent
+                      content={parsedContent.conclusion}
+                      className="text-sm"
+                    />
                   </div>
                 )}
               </div>

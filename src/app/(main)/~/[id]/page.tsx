@@ -52,6 +52,7 @@ export default function page() {
       files: template.files,
       template: template.template,
       stackId: params.id.toString(),
+      name: template.updatedStackName
     });
 
     utils.getStackDetails.invalidate({ stackId: params.id.toString() });
@@ -67,13 +68,11 @@ export default function page() {
 
     console.log("first", params.id);
 
-    createMessage({
+    await createMessage({
       stackId: params?.id as string,
       parts: [{ type: "text", text: message }],
       role: "user",
     });
-
-    console.log(files);
 
     sendMessage(
       {

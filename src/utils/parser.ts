@@ -20,6 +20,7 @@ interface ParsedStackArtifact {
   progress: {
     files: FileProgress[];
   };
+  conclusion: string;
 }
 
 function isDirectoryNode(node: FileNode): node is DirectoryNode {
@@ -36,6 +37,7 @@ function parseStackArtifact(input: string): ParsedStackArtifact {
     progress: {
       files: [],
     },
+    conclusion: "",
   };
 
   // Extract introduction (text before <stackArtifact>)
@@ -45,6 +47,10 @@ function parseStackArtifact(input: string): ParsedStackArtifact {
   // Extract artifact title - more flexible matching for streaming
   const titleMatch = input.match(/<stackArtifact[^>]*title="([^"]+)"/);
   const artifactTitle = titleMatch ? titleMatch[1] : "";
+
+  // Extract conclusion (text after </stackArtifact>)
+  const conclusionMatch = input.match(/(?<=<\/stackArtifact>)[\s\S]*$/);
+  result.conclusion = conclusionMatch ? conclusionMatch[0].trim() : "";
 
   result.files.title = artifactTitle;
 
@@ -124,7 +130,7 @@ export function testStreamingParser() {
   console.log(JSON.stringify(result, null, 2));
 
   // Test complete input
-  const completeInput = `Certainly I will create a todo app using Expo. \`\`\`html <stackArtifact id="expo-todo-app" title="Expo Todo App"> <stackAction type="file" filePath="package.json"> { "name": "bolt-expo-starter", "main": "expo-router/entry", "version": "1.0.0", "private": true } </stackAction> <stackAction type="file" filePath="app/page.tsx"> import React from 'react'; export default function Page() { return <div>Hello World</div>; } </stackAction> </stackArtifact>`;
+  const completeInput = `Certainly I will create a todo app using Expo. \`\`\`html <stackArtifact id="expo-todo-app" title="Expo Todo App"> <stackAction type="file" filePath="package.json"> { "name": "bolt-expo-starter", "main": "expo-router/entry", "version": "1.0.0", "private": true } </stackAction> <stackAction type="file" filePath="app/page.tsx"> import React from 'react'; export default function Page() { return <div>Hello World</div>; } </stackAction> </stackArtifact> Your todo app is now ready! You can run it using 'npx expo start'.`;
 
   const completeResult = parseStackArtifact(completeInput);
   console.log("\nComplete input result:");
