@@ -33,8 +33,6 @@ export function streamText(
       JSON.stringify(files)
     ).replace("{{PROJECT_PROMPT}}", projectPrompt),
     maxOutputTokens: MAX_TOKENS,
-    messages: convertToModelMessages(messages as any),
-    ...options,
-    
+    messages: convertToModelMessages(messages as any)
   });
 }
