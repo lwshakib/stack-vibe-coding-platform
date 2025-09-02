@@ -5,16 +5,16 @@ const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
 const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI;
 
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code");
-
-  if (!code) {
-    return NextResponse.json(
-      { error: "No authorization code provided" },
-      { status: 400 }
-    );
-  }
-
   try {
+    const code = request.nextUrl.searchParams.get("code");
+
+    if (!code) {
+      return NextResponse.json(
+        { error: "No authorization code provided" },
+        { status: 400 }
+      );
+    }
+
     // Exchange code for access token
     const tokenResponse = await fetch(
       "https://github.com/login/oauth/access_token",
