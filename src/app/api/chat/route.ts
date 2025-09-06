@@ -25,7 +25,6 @@ export async function POST(req: Request) {
         google: {
           thinkingConfig: {
             thinkingBudget: 8192,
-            includeThoughts: true,
           },
         },
       },

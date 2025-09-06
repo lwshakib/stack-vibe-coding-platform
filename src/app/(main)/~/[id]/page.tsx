@@ -52,7 +52,7 @@ export default function page() {
       files: template.files,
       template: template.template,
       stackId: params.id.toString(),
-      name: template.updatedStackName
+      name: template.updatedStackName,
     });
 
     utils.getStackDetails.invalidate({ stackId: params.id.toString() });
