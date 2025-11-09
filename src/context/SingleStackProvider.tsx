@@ -589,19 +589,7 @@ export default function SingleStackProvider({
             </pre>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsErrorDialogOpen(false);
-                if (errorMessage) {
-                  sendMessage({
-                    text: `Please explain this error in detail: ${errorMessage}`,
-                  } as any);
-                }
-              }}
-            >
-              Explain
-            </Button>
+       
             <Button
               onClick={() => {
                 setIsErrorDialogOpen(false);
