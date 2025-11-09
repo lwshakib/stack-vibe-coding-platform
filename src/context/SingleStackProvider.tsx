@@ -596,9 +596,15 @@ export default function SingleStackProvider({
                 if (errorMessage) {
                   const stack = (stackDetails as any)?.stack;
                   const projectFiles = stack?.files;
+                  const text = `Please solve this error:\n\n${errorMessage}`
+                  createMessage({
+                    stackId: stackDetails?.stack?.id as string,
+                    parts: [{ type: "text", text }],
+                    role: "user",
+                  });
                   sendMessage(
                     {
-                      text: `Please solve this error:\n\n${errorMessage}`,
+                      text,
                     },
                     {
                       body: {
