@@ -211,7 +211,6 @@ export default function AiInput({
 
   const handleSubmit = async () => {
     // Default function - you can customize this
-    console.log("Submitting:", value);
     setValue("");
     adjustHeight(true);
     if (!params.id) {

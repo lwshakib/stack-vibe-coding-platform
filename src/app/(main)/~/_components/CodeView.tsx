@@ -121,10 +121,6 @@ export default function CodeView({
       window.clearTimeout(changeDebounceRef.current);
     }
     changeDebounceRef.current = window.setTimeout(async () => {
-      // Log the full path and content
-      console.log("File Path:", selectedFile?.id);
-      console.log("File Content:", value || selectedFile?.data?.contents);
-
       // Create tree structure from file path
       if (selectedFile?.id) {
         const filePath = selectedFile.id;
@@ -154,15 +150,12 @@ export default function CodeView({
           }
         }
 
-        console.log("Tree Structure:", tree);
-
         // Update the file in database and WebContainer
         try {
           const newContent = value || selectedFile?.data?.contents;
           if (newContent !== undefined) {
             setIsUpdating(true);
             await updateFile(filePath, newContent);
-            console.log("File updated successfully:", filePath);
           }
         } catch (error) {
           console.error("Error updating file:", error);

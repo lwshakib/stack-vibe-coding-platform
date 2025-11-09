@@ -103,7 +103,6 @@ export default function page() {
   }
 
   async function initializeFiles() {
-    console.log("booting web container", stackDetails?.stack?.files);
     const instance = webContainerInstance || (await bootWebContainer());
     await mountAndRun(stackDetails?.stack?.files as any, instance);
   }

@@ -8,8 +8,6 @@ import FileTree from "./FileTree";
 export default function FileExplorer() {
   const { stackDetails, setSelectedFile, webContainerFiles } = useSingleStack();
 
-  console.log("webContainerFiles", webContainerFiles);
-
   // Use WebContainer files if available, otherwise fallback to stackDetails
   const fileTreeData =
     Object.keys(webContainerFiles).length > 0
@@ -36,7 +34,6 @@ export default function FileExplorer() {
               onNodeClick={(node) => {
                 if (node.data) {
                   setSelectedFile(node);
-                  console.log(node);
                 }
               }}
             />

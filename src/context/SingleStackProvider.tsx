@@ -148,7 +148,6 @@ export default function SingleStackProvider({
 
     try {
       setIsBootingWebContainer(true);
-      console.log("Booting web container", stackId);
       terminalWriteRef.current?.("Booting WebContainer...\r\n");
       webContainerBootPromise = WebContainer.boot();
       const instance = await webContainerBootPromise;
@@ -209,7 +208,6 @@ export default function SingleStackProvider({
     webContainerInstance.on("server-ready", (port, url) => {
       setWebContainerPort(port);
       setWebPreviewUrl(url);
-      console.log(url);
       terminalWriteRef.current?.(
         `Dev server ready on port ${port}. Preview: ${url}\r\n`
       );
@@ -219,7 +217,6 @@ export default function SingleStackProvider({
   async function installDependencies(webContainerInstance: WebContainer) {
     setIsInstallingDependencies(true);
     // Install dependencies
-    console.log("Installing dependencies", stackId);
     terminalWriteRef.current?.("Installing dependencies...\r\n");
     const installProcess = await webContainerInstance.spawn("npm", ["install"]);
     runningProcessesRef.current = [
@@ -317,7 +314,6 @@ export default function SingleStackProvider({
 
   async function mountFiles(files: any, webContainerInstance: WebContainer) {
     if (!webContainerInstance) return;
-    console.log("Mount Files");
     terminalWriteRef.current?.("Mounting files...\r\n");
 
     await webContainerInstance.mount(files);
@@ -326,7 +322,6 @@ export default function SingleStackProvider({
 
   async function mountAndRun(files: any, webContainerInstance: WebContainer) {
     if (!webContainerInstance) return;
-    console.log("Mount And Run");
     terminalWriteRef.current?.("Starting stack: mount → install → dev\r\n");
     await mountFiles(files, webContainerInstance);
     setIsInstallingDependencies(true);
@@ -338,7 +333,7 @@ export default function SingleStackProvider({
   }
 
   useEffect(() => {
-    console.log(stackId);
+    // Stack ID changed
   }, [stackId]);
 
   // Function to recursively read the entire file tree from WebContainer
@@ -409,7 +404,6 @@ export default function SingleStackProvider({
     // Initial file tree read
     getFileTree(webContainerInstance, "/").then((fileTree) => {
       if (isActive) {
-        console.log("webContainerFiles (initial)", fileTree);
         setWebContainerFiles(fileTree);
       }
     });
@@ -421,7 +415,6 @@ export default function SingleStackProvider({
       // Re-read the file tree when any file changes
       getFileTree(webContainerInstance, "/").then((fileTree) => {
         if (isActive) {
-          console.log("webContainerFiles (updated)", fileTree, event);
           setWebContainerFiles(fileTree);
         }
       });

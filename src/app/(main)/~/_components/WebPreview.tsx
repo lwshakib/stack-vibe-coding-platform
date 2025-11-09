@@ -49,7 +49,6 @@ function WebPreviewHeader({
 
   const handleUrlSubmit = (value: string) => {
     // Trigger preview update on Enter
-    console.log("Loading URL:", value);
   };
 
   const handleResponsiveModeToggle = () => {
@@ -57,7 +56,6 @@ function WebPreviewHeader({
     const currentIndex = modes.indexOf(responsiveMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     setResponsiveMode(modes[nextIndex]);
-    console.log("Responsive mode changed to:", modes[nextIndex]);
   };
 
   const getResponsiveIcon = () => {

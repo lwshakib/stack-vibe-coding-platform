@@ -29,7 +29,7 @@ export async function checkUser() {
     return newUser;
   } catch (error) {
     if (error instanceof Error) {
-      console.log(error.message);
+      // Error handled silently
     }
   }
 }

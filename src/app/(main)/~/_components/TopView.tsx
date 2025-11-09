@@ -104,7 +104,6 @@ export default function TopView() {
       );
       if (response.ok) {
         const data = await response.json();
-        console.log("GitHub connection data:", data);
         setGithubStatus({ connected: true, data, loading: false });
       } else {
         setGithubStatus({ connected: false, loading: false });
