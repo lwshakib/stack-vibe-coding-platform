@@ -75,6 +75,7 @@ export default function CodeView({
   const { resolvedTheme } = useTheme();
   const { selectedFile, updateFile } = useSingleStack();
 
+
   const handleCopy = () => {
     const textToCopy = selectedFile?.data?.contents ?? "";
     const doSet = () => {

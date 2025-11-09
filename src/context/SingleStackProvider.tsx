@@ -44,6 +44,7 @@ interface SingleStackContextType {
   streamingStatus: ChatStatus;
   stopStreaming: () => void;
   updateFile: (filePath: string, newContent: string) => Promise<any>;
+  webContainerFiles: any;
 }
 
 interface SingleStackProviderProps {
@@ -85,6 +86,7 @@ export default function SingleStackProvider({
   const utils = trpc.useUtils();
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [onResponseFinish, setOnResponseFinish] = useState(false);
+  const [webContainerFiles, setWebContainerFiles] = useState<any>({});
   const devServerProcessRef = useRef<WebContainerProcess | null>(null);
   const runningProcessesRef = useRef<WebContainerProcess[]>([]);
   const terminalWriteRef = useRef<((text: string) => void) | null>(null);
@@ -339,6 +341,99 @@ export default function SingleStackProvider({
     console.log(stackId);
   }, [stackId]);
 
+  // Function to recursively read the entire file tree from WebContainer
+  async function getFileTree(
+    webContainerInstance: WebContainer,
+    path: string = "/"
+  ): Promise<any> {
+    if (!webContainerInstance) return {};
+
+    try {
+      const entries = await webContainerInstance.fs.readdir(path);
+
+      const result: any = {};
+
+      for (const entryName of entries) {
+        const fullPath =
+          path === "/" ? `/${entryName}` : `${path}/${entryName}`;
+
+        try {
+          // Try to readdir to check if it's a directory
+          // If readdir succeeds, it's a directory; if it fails, it's likely a file
+          await webContainerInstance.fs.readdir(fullPath);
+
+          // It's a directory - recursively read directory contents
+          const directoryContents = await getFileTree(
+            webContainerInstance,
+            fullPath
+          );
+          result[entryName] = {
+            directory: directoryContents,
+          };
+        } catch (dirError) {
+          // If readdir fails, it's likely a file - try to read it
+          try {
+            const contents = await webContainerInstance.fs.readFile(
+              fullPath,
+              "utf-8"
+            );
+            result[entryName] = {
+              file: {
+                contents: contents,
+              },
+            };
+          } catch (readError) {
+            // If file can't be read (e.g., binary), include it with empty contents
+            console.warn(`Could not read file ${fullPath}:`, readError);
+            result[entryName] = {
+              file: {
+                contents: "",
+              },
+            };
+          }
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`Error reading directory ${path}:`, error);
+      return {};
+    }
+  }
+
+  useEffect(() => {
+    if (!webContainerInstance) return;
+
+    let isActive = true;
+
+    // Initial file tree read
+    getFileTree(webContainerInstance, "/").then((fileTree) => {
+      if (isActive) {
+        console.log("webContainerFiles (initial)", fileTree);
+        setWebContainerFiles(fileTree);
+      }
+    });
+
+    // Set up file watcher to detect changes
+    // The watch method accepts a callback and returns an IFSWatcher with a close() method
+    const watcher = webContainerInstance.fs.watch("/", (event) => {
+      if (!isActive) return;
+      // Re-read the file tree when any file changes
+      getFileTree(webContainerInstance, "/").then((fileTree) => {
+        if (isActive) {
+          console.log("webContainerFiles (updated)", fileTree, event);
+          setWebContainerFiles(fileTree);
+        }
+      });
+    });
+
+    // Cleanup: close the watcher when component unmounts or webContainerInstance changes
+    return () => {
+      isActive = false;
+      watcher.close();
+    };
+  }, [webContainerInstance]);
+
   // Cleanup when stackId changes or when provider unmounts
   useEffect(() => {
     return () => {
@@ -418,6 +513,7 @@ export default function SingleStackProvider({
         streamingStatus,
         stopStreaming,
         updateFile,
+        webContainerFiles,
       }}
     >
       {children}

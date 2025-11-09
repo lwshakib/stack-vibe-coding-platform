@@ -2,11 +2,20 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import FileTree from "./FileTree";
 import { useSingleStack } from "@/context/SingleStackProvider";
+import FileTree from "./FileTree";
 
 export default function FileExplorer() {
-  const { stackDetails, setSelectedFile } = useSingleStack();
+  const { stackDetails, setSelectedFile, webContainerFiles } = useSingleStack();
+
+  console.log("webContainerFiles", webContainerFiles);
+
+  // Use WebContainer files if available, otherwise fallback to stackDetails
+  const fileTreeData =
+    Object.keys(webContainerFiles).length > 0
+      ? webContainerFiles
+      : stackDetails?.stack?.files ?? {};
+
   return (
     <div className="flex flex-col h-full w-full">
       <Tabs defaultValue="files" className="rounded-full">
@@ -21,12 +30,16 @@ export default function FileExplorer() {
         <Separator className="w-full" />
         <TabsContent value="files" className="mt-2">
           <ScrollArea className="h-[calc(100vh-210px)]">
-            <FileTree data={stackDetails?.stack?.files ?? {}}            className="bg-transparent border-none"         onNodeClick={(node) => {
+            <FileTree
+              data={fileTreeData}
+              className="bg-transparent border-none"
+              onNodeClick={(node) => {
                 if (node.data) {
                   setSelectedFile(node);
                   console.log(node);
                 }
-              }}/>
+              }}
+            />
           </ScrollArea>
         </TabsContent>
         <TabsContent value="search" className="mt-2">
