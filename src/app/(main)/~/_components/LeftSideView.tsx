@@ -91,7 +91,7 @@ const LeftSideView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (previousMessages) {
+    if (previousMessages && previousMessages.data.length > 0) {
       setMessages(previousMessages.data);
     }
   }, [previousMessages]);

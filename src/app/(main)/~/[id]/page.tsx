@@ -42,6 +42,19 @@ export default function page() {
 
   async function sendMessageFirstTime(message: string) {
     if (!params.id) return;
+    setMessages([
+      {
+          "id": "dummy-message",
+          "parts": [
+              {
+                  "text": message,
+                  "type": "text"
+              }
+          ],
+          "role": "user",
+      }
+  ]);
+
 
     const template = await getTemplateTrpc({ message });
     if (!template.files) {
@@ -66,13 +79,13 @@ export default function page() {
           : ""
         : "";
 
-    console.log("first", params.id);
-
     await createMessage({
       stackId: params?.id as string,
       parts: [{ type: "text", text: message }],
       role: "user",
     });
+
+  setMessages([]);
 
     sendMessage(
       {
