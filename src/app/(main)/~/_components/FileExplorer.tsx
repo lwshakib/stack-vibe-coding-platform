@@ -6,13 +6,10 @@ import { useSingleStack } from "@/context/SingleStackProvider";
 import FileTree from "./FileTree";
 
 export default function FileExplorer() {
-  const { stackDetails, setSelectedFile, webContainerFiles } = useSingleStack();
+  const { stackDetails, setSelectedFile } = useSingleStack();
 
-  // Use WebContainer files if available, otherwise fallback to stackDetails
-  const fileTreeData =
-    Object.keys(webContainerFiles).length > 0
-      ? webContainerFiles
-      : stackDetails?.stack?.files ?? {};
+  // Use stackDetails as the source for file tree
+  const fileTreeData = stackDetails?.stack?.files ?? {};
 
   return (
     <div className="flex flex-col h-full w-full">

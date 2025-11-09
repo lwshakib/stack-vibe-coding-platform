@@ -1,4 +1,13 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { trpc } from "@/utils/trpc";
 import { useChat } from "@ai-sdk/react";
 import { WebContainer, WebContainerProcess } from "@webcontainer/api";
@@ -45,6 +54,10 @@ interface SingleStackContextType {
   stopStreaming: () => void;
   updateFile: (filePath: string, newContent: string) => Promise<any>;
   webContainerFiles: any;
+  errorMessage: string | null;
+  setErrorMessage: (error: string | null) => void;
+  isErrorDialogOpen: boolean;
+  setIsErrorDialogOpen: (open: boolean) => void;
 }
 
 interface SingleStackProviderProps {
@@ -87,6 +100,8 @@ export default function SingleStackProvider({
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [onResponseFinish, setOnResponseFinish] = useState(false);
   const [webContainerFiles, setWebContainerFiles] = useState<any>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const devServerProcessRef = useRef<WebContainerProcess | null>(null);
   const runningProcessesRef = useRef<WebContainerProcess[]>([]);
   const terminalWriteRef = useRef<((text: string) => void) | null>(null);
@@ -184,24 +199,76 @@ export default function SingleStackProvider({
       devProcess.output.pipeTo(
         new WritableStream<string>({
           write(data: string) {
+            console.log("Dev process output:", data);
+
+            // Check for errors in the output
+            const errorPatterns = [
+              /error:/i,
+              /error\s/i,
+              /failed/i,
+              /failure/i,
+              /exception/i,
+              /^Error\s/i,
+              /EACCES/i,
+              /ENOENT/i,
+              /ECONNREFUSED/i,
+              /Cannot find module/i,
+              /Module not found/i,
+              /SyntaxError/i,
+              /TypeError/i,
+              /ReferenceError/i,
+            ];
+
+            const hasError = errorPatterns.some((pattern) =>
+              pattern.test(data)
+            );
+            if (hasError) {
+              console.log("Error found in process output:", data);
+              setErrorMessage(data);
+              setIsErrorDialogOpen(true);
+            }
+
             terminalWriteRef.current?.(data.replace(/\n/g, "\r\n"));
           },
         })
       );
-    } catch {
+    } catch (error) {
+      console.log("Error found in process pipe:", error);
+      const errorText = error instanceof Error ? error.message : String(error);
+      setErrorMessage(`Process pipe error: ${errorText}`);
+      setIsErrorDialogOpen(true);
       // ignore
     }
 
     // Clear ref when process exits
     devProcess.exit
-      .then(() => {
+      .then((exitCode) => {
+        console.log(
+          "Dev process exited",
+          exitCode !== undefined ? `with exit code: ${exitCode}` : ""
+        );
+        if (exitCode !== undefined && exitCode !== 0) {
+          console.log(
+            "Error found: Process exited with non-zero exit code:",
+            exitCode
+          );
+          setErrorMessage(
+            `Process exited with non-zero exit code: ${exitCode}`
+          );
+          setIsErrorDialogOpen(true);
+        }
         if (devServerProcessRef.current === devProcess) {
           devServerProcessRef.current = null;
         }
         setIsDevServerRunning(false);
         terminalWriteRef.current?.("Dev server stopped.\r\n");
       })
-      .catch(() => {
+      .catch((error) => {
+        console.log("Error found: Dev process exit error:", error);
+        const errorText =
+          error instanceof Error ? error.message : String(error);
+        setErrorMessage(`Process exit error: ${errorText}`);
+        setIsErrorDialogOpen(true);
         // Ignore
       });
 
@@ -396,36 +463,7 @@ export default function SingleStackProvider({
     }
   }
 
-  useEffect(() => {
-    if (!webContainerInstance) return;
-
-    let isActive = true;
-
-    // Initial file tree read
-    getFileTree(webContainerInstance, "/").then((fileTree) => {
-      if (isActive) {
-        setWebContainerFiles(fileTree);
-      }
-    });
-
-    // Set up file watcher to detect changes
-    // The watch method accepts a callback and returns an IFSWatcher with a close() method
-    const watcher = webContainerInstance.fs.watch("/", (event) => {
-      if (!isActive) return;
-      // Re-read the file tree when any file changes
-      getFileTree(webContainerInstance, "/").then((fileTree) => {
-        if (isActive) {
-          setWebContainerFiles(fileTree);
-        }
-      });
-    });
-
-    // Cleanup: close the watcher when component unmounts or webContainerInstance changes
-    return () => {
-      isActive = false;
-      watcher.close();
-    };
-  }, [webContainerInstance]);
+  // Removed WebContainer file watching - using stackDetails as source of truth instead
 
   // Cleanup when stackId changes or when provider unmounts
   useEffect(() => {
@@ -507,9 +545,64 @@ export default function SingleStackProvider({
         stopStreaming,
         updateFile,
         webContainerFiles,
+        errorMessage,
+        setErrorMessage,
+        isErrorDialogOpen,
+        setIsErrorDialogOpen,
       }}
     >
       {children}
+      <Dialog open={isErrorDialogOpen} onOpenChange={setIsErrorDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Error Detected</DialogTitle>
+            <DialogDescription>
+              An error was detected in the development server process.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <pre className="bg-muted rounded-md p-4 text-sm overflow-auto max-h-96 whitespace-pre-wrap break-words">
+              {errorMessage || "Unknown error"}
+            </pre>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsErrorDialogOpen(false);
+                if (errorMessage) {
+                  sendMessage({
+                    text: `Please explain this error in detail: ${errorMessage}`,
+                  } as any);
+                }
+              }}
+            >
+              Explain
+            </Button>
+            <Button
+              onClick={() => {
+                setIsErrorDialogOpen(false);
+                if (errorMessage) {
+                  const stack = (stackDetails as any)?.stack;
+                  const projectFiles = stack?.files;
+                  sendMessage(
+                    {
+                      text: errorMessage,
+                    },
+                    {
+                      body: {
+                        projectFiles,
+                      },
+                    } as any
+                  );
+                }
+              }}
+            >
+              Fix It
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SingleStackContext.Provider>
   );
 }
