@@ -114,6 +114,27 @@ export default function SingleStackProvider({
     terminalWriteRef.current = null;
   }
 
+  // Clean error message text by removing ANSI codes and control characters
+  function cleanErrorMessage(text: string): string {
+    if (!text) return "";
+
+    // Remove ANSI escape codes (e.g., \x1b[31m, \x1b[0m)
+    let cleaned = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+
+    // Remove control characters except newlines (\n), carriage returns (\r), and tabs (\t)
+    cleaned = cleaned.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, "");
+
+    // Trim and limit length
+    cleaned = cleaned.trim();
+
+    // Limit to reasonable length (e.g., 5000 characters)
+    if (cleaned.length > 5000) {
+      cleaned = cleaned.substring(0, 5000) + "\n... (truncated)";
+    }
+
+    return cleaned;
+  }
+
   const {
     messages,
     sendMessage,
@@ -224,7 +245,7 @@ export default function SingleStackProvider({
             );
             if (hasError) {
               console.log("Error found in process output:", data);
-              setErrorMessage(data);
+              setErrorMessage(cleanErrorMessage(data));
               setIsErrorDialogOpen(true);
             }
 
@@ -235,7 +256,7 @@ export default function SingleStackProvider({
     } catch (error) {
       console.log("Error found in process pipe:", error);
       const errorText = error instanceof Error ? error.message : String(error);
-      setErrorMessage(`Process pipe error: ${errorText}`);
+      setErrorMessage(cleanErrorMessage(`Process pipe error: ${errorText}`));
       setIsErrorDialogOpen(true);
       // ignore
     }
@@ -253,7 +274,9 @@ export default function SingleStackProvider({
             exitCode
           );
           setErrorMessage(
-            `Process exited with non-zero exit code: ${exitCode}`
+            cleanErrorMessage(
+              `Process exited with non-zero exit code: ${exitCode}`
+            )
           );
           setIsErrorDialogOpen(true);
         }
@@ -267,7 +290,7 @@ export default function SingleStackProvider({
         console.log("Error found: Dev process exit error:", error);
         const errorText =
           error instanceof Error ? error.message : String(error);
-        setErrorMessage(`Process exit error: ${errorText}`);
+        setErrorMessage(cleanErrorMessage(`Process exit error: ${errorText}`));
         setIsErrorDialogOpen(true);
         // Ignore
       });
@@ -587,7 +610,7 @@ export default function SingleStackProvider({
                   const projectFiles = stack?.files;
                   sendMessage(
                     {
-                      text: errorMessage,
+                      text: `Please solve this error:\n\n${errorMessage}`,
                     },
                     {
                       body: {
