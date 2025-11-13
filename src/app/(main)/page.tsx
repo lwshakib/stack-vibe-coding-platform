@@ -10,6 +10,7 @@ import { UserButton, useUser } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Github } from "lucide-react";
 
 export default function Home() {
   const { resolvedTheme } = useTheme();
@@ -118,6 +119,21 @@ export default function Home() {
             </div>
 
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                asChild
+              >
+                <a
+                  href={process.env.NEXT_PUBLIC_GITHUB_REPO_URL || "https://github.com"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="View repository on GitHub"
+                >
+                  <Github className="h-4 w-4" />
+                </a>
+              </Button>
               <ThemeToggle />
               {isSignedIn && isLoaded && (
                 <>
