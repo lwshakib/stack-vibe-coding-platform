@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { useStack } from "@/context/StackProvider";
 import { trpc } from "@/utils/trpc";
 import { UserButton, useUser } from "@clerk/nextjs";
+import { Github } from "lucide-react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Github } from "lucide-react";
 
 export default function Home() {
   const { resolvedTheme } = useTheme();
@@ -70,11 +70,15 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <div className="border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => router.push("/")}> 
-              <div className="relative w-7 h-9">
+      <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo Section */}
+            <div
+              className="group flex items-center space-x-3 cursor-pointer transition-all duration-200 hover:opacity-80 active:scale-95"
+              onClick={() => router.push("/")}
+            >
+              <div className="relative w-8 h-10 transition-transform duration-200 group-hover:scale-105">
                 <Image
                   src={logoSrc}
                   alt="Stack Logo"
@@ -83,68 +87,82 @@ export default function Home() {
                   priority
                 />
               </div>
-              <h1 className="text-xl font-semibold text-foreground">Stack</h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent group-hover:from-foreground group-hover:to-foreground transition-all duration-200">
+                Stack
+              </h1>
             </div>
 
             {/* Center Navigation - Hidden on small screens */}
-            <div className="hidden lg:flex items-center space-x-2">
+            <nav className="hidden lg:flex items-center space-x-1">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-foreground/70 hover:text-foreground"
+                className="relative text-sm font-medium text-foreground/70 hover:text-foreground transition-all duration-200 hover:bg-accent/50 rounded-md px-4 py-2 h-9 group"
               >
-                Careers
+                <span className="relative z-10">Careers</span>
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-center"></span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-foreground/70 hover:text-foreground"
+                className="relative text-sm font-medium text-foreground/70 hover:text-foreground transition-all duration-200 hover:bg-accent/50 rounded-md px-4 py-2 h-9 group"
               >
-                Resources
+                <span className="relative z-10">Resources</span>
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-center"></span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-foreground/70 hover:text-foreground"
+                className="relative text-sm font-medium text-foreground/70 hover:text-foreground transition-all duration-200 hover:bg-accent/50 rounded-md px-4 py-2 h-9 group"
               >
-                Community
+                <span className="relative z-10">Community</span>
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-center"></span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-foreground/70 hover:text-foreground"
+                className="relative text-sm font-medium text-foreground/70 hover:text-foreground transition-all duration-200 hover:bg-accent/50 rounded-md px-4 py-2 h-9 group"
               >
-                Pricing
+                <span className="relative z-10">Pricing</span>
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-center"></span>
               </Button>
-            </div>
+            </nav>
 
-            <div className="flex items-center space-x-2">
+            {/* Right Actions */}
+            <div className="flex items-center space-x-1">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0"
+                className="h-9 w-9 p-0 rounded-md hover:bg-accent/50 transition-all duration-200 hover:scale-105 active:scale-95"
                 asChild
               >
                 <a
-                  href={process.env.NEXT_PUBLIC_GITHUB_REPO_URL || "https://github.com"}
+                  href={
+                    process.env.NEXT_PUBLIC_GITHUB_REPO_URL ||
+                    "https://github.com"
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="View repository on GitHub"
                 >
-                  <Github className="h-4 w-4" />
+                  <Github className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
                 </a>
               </Button>
+              <div className="h-6 w-px bg-border/50 mx-1"></div>
               <ThemeToggle />
               {isSignedIn && isLoaded && (
                 <>
-                  <UserButton afterSignOutUrl="/" />
-                  <Sidebar />
+                  <div className="h-6 w-px bg-border/50 mx-1"></div>
+                  <div className="flex items-center space-x-2">
+                    <UserButton afterSignOutUrl="/" />
+                    <Sidebar />
+                  </div>
                 </>
               )}
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content - Takes remaining height */}
       <div className="flex-1 flex flex-col px-6 py-12">
@@ -176,31 +194,21 @@ export default function Home() {
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() =>
-                  handleClickBadge(
-                    "Create a Financial App"
-                  )
-                }
+                onClick={() => handleClickBadge("Create a Financial App")}
               >
                 Create a Financial App
               </Badge>
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() =>
-                  handleClickBadge(
-                    "Create a Todo Mobile App"
-                  )
-                }
+                onClick={() => handleClickBadge("Create a Todo Mobile App")}
               >
                 Create a Todo Mobile App
               </Badge>
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() =>
-                  handleClickBadge("Build a Kanban Board App")
-                }
+                onClick={() => handleClickBadge("Build a Kanban Board App")}
               >
                 Build a Kanban Board App
               </Badge>
@@ -208,9 +216,7 @@ export default function Home() {
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
                 onClick={() =>
-                  handleClickBadge(
-                    "Build a Library Management API Server"
-                  )
+                  handleClickBadge("Build a Library Management API Server")
                 }
               >
                 Build a Library Management API Server
@@ -229,11 +235,7 @@ export default function Home() {
               <Badge
                 variant="outline"
                 className="rounded-full px-5 py-2 cursor-pointer hover:bg-accent/50 transition-colors text-sm font-medium"
-                onClick={() =>
-                  handleClickBadge(
-                    "Create a Weather App"
-                  )
-                }
+                onClick={() => handleClickBadge("Create a Weather App")}
               >
                 Create a Weather App
               </Badge>
